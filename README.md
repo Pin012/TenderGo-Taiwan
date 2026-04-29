@@ -1,14 +1,14 @@
-# 🇹🇼 台標通 TenderGo - 政府標案查詢手機 Web App (MVP)
+# 🇹🇼 標案通 TenderGo - 政府標案查詢手機 Web App (MVP)
 
 ![TenderGo Banner](https://img.shields.io/badge/Status-MVP-orange?style=for-the-badge)
 ![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-4.0-38B2AC?style=for-the-badge&logo=tailwind-css)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)
 
-「台標通 TenderGo」是一個專為工程顧問公司、商務開發者設計的政府標案查詢 App 雛形。透過手機優先 (Mobile-First) 的介面設計，將繁瑣的政府採購網資訊轉化為易於閱讀與追蹤的數位工具。
+「標案通 TenderGo」是一個專為工程顧問公司、商務開發者設計的政府標案查詢 App 雛形。透過手機優先 (Mobile-First) 的介面設計，將繁瑣的政府採購網資訊轉化為易於閱讀與追蹤的數位工具。
 
 ## 🌟 核心理念
-政府標案資訊往往分散且難以在行動端閱讀。「台標通」的目標是將資料結構化，並透過進階篩選與即時通知，協助專業人士不漏接任何一個關鍵商機。
+政府標案資訊往往分散且難以在行動端閱讀。「標案通」的目標是將資料結構化，並透過進階篩選與即時通知，協助專業人士不漏接任何一個關鍵商機。
 
 ## ✨ MVP 功能清單
 - [x] **手機優先 RWD 設計**：採用「Bento Grid」風格，完美適配各種螢幕尺寸。
