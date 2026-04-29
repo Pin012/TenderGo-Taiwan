@@ -78,7 +78,7 @@ export default function TenderCard({ tender, onClick, onTrack, isTracking }: Ten
               }`}
             >
               <Bookmark size={13} fill={isTracking ? "currentColor" : "none"} />
-              {isTracking ? '已收藏' : '⭐ 收藏'}
+              {isTracking ? '已收藏' : '收藏'}
             </button>
           </div>
         </div>
