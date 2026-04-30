@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Search, ListFilter, User, Settings } from 'lucide-react';
+import { Search, ListFilter, Compass, Settings } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -14,7 +14,7 @@ export default function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
   const tabs = [
     { id: 'search', label: '搜尋', icon: Search },
     { id: 'tracking', label: '追蹤', icon: ListFilter },
-    { id: 'profile', label: '我的', icon: User },
+    { id: 'explore', label: '探索', icon: Compass },
     { id: 'settings', label: '設定', icon: Settings },
   ];
 
