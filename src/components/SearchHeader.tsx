@@ -29,11 +29,10 @@ export default function SearchHeader({ searchQuery, setSearchQuery, onFilterClic
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-white transition-colors" size={18} />
             <input
               type="text"
-              readOnly
-              onClick={onFilterClick}
-              placeholder="搜尋案名、機關、地區..."
+              placeholder="搜尋標案名稱..."
               value={searchQuery}
-              className="w-full bg-white/20 border-none rounded-lg py-2.5 pl-10 pr-10 text-sm placeholder:text-white/60 focus:ring-2 focus:ring-white/40 focus:bg-white/30 transition-all outline-none text-white cursor-pointer"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/20 border-none rounded-lg py-2.5 pl-10 pr-10 text-sm placeholder:text-white/60 focus:ring-2 focus:ring-white/40 focus:bg-white/30 transition-all outline-none text-white"
             />
             {searchQuery && (
               <button 

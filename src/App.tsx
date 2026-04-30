@@ -12,7 +12,7 @@ import FilterOverlay from './components/FilterOverlay';
 import { MOCK_TENDERS } from './data/mockTenders';
 import { Tender } from './types/tender';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutGrid, ClipboardList, Bell, Loader2, BellDot, X, Newspaper, GraduationCap, Bot, ArrowRight } from 'lucide-react';
+import { LayoutGrid, ClipboardList, Bell, Loader2, BellDot, X, Newspaper, GraduationCap, Bot, ArrowRight, UserRound, LogIn, MessageCircleQuestion, LifeBuoy } from 'lucide-react';
 
 const EXPLORE_SECTIONS = [
   { title: '顧問專欄', description: '掌握最新標案策略與顧問實戰解析。', icon: ClipboardList },
@@ -27,6 +27,7 @@ export default function App() {
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [settingsPanel, setSettingsPanel] = useState<'login' | 'profile' | null>(null);
 
   const [notificationEnabled, setNotificationEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem('notification_enabled');
@@ -82,9 +83,7 @@ export default function App() {
 
   const filteredTenders = useMemo(() => {
     return MOCK_TENDERS.filter(tender =>
-      tender.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tender.orgName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tender.id.toLowerCase().includes(searchQuery.toLowerCase())
+      tender.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery]);
 
@@ -188,11 +187,15 @@ export default function App() {
                 <div className="space-y-4">
                   <MenuHeading>系統功能</MenuHeading>
                   <MenuItem icon={Bell} label="推播通知" badge={notificationEnabled ? '已開啟' : '已關閉'} onClick={() => setNotificationEnabled((v) => !v)} />
+                  <MenuItem icon={LogIn} label="登入" onClick={() => setSettingsPanel('login')} />
+                  <MenuItem icon={UserRound} label="個人資訊" onClick={() => setSettingsPanel('profile')} />
+                  <MenuItem icon={MessageCircleQuestion} label="意見回饋" />
+                  <MenuItem icon={LifeBuoy} label="幫助中心" />
 
                   <MenuHeading>關於 App</MenuHeading>
                   <div className="bg-[#003366] p-5 rounded-[24px] text-white/90 shadow-lg shadow-blue-900/10">
                     <h4 className="text-sm font-bold mb-2">標案通 TenderGo v0.1.0</h4>
-                    <p className="text-xs text-white/70 leading-relaxed">本版本專注於手機優化的 UI 雛形驗證。資料來源參考 g0v 開源 API。<br/>這是一個「Bento Grid」設計風格的實務工具範例。</p>
+                    <p className="text-xs text-white/70 leading-relaxed">TenderGo 會依照你的搜尋與追蹤偏好，提供最適切的標案推薦與提醒，協助你更快掌握關鍵商機。</p>
                   </div>
                 </div>
               </motion.div>
@@ -232,6 +235,30 @@ export default function App() {
                     {notifications.map((msg, idx) => (
                       <div key={`${msg}-${idx}`} className="p-4 rounded-xl border border-slate-100 bg-slate-50 text-sm text-slate-700">{msg}</div>
                     ))}
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {settingsPanel && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[130] bg-black/40 backdrop-blur-sm p-4" onClick={() => setSettingsPanel(null)}>
+              <motion.div initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }} className="max-w-md mx-auto bg-white rounded-3xl p-5" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-[#003366] mb-4">{settingsPanel === 'login' ? '登入' : '個人資訊'}</h3>
+                {settingsPanel === 'login' ? (
+                  <div className="space-y-3">
+                    <input type="email" placeholder="電子郵件" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none" />
+                    <input type="password" placeholder="密碼" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none" />
+                    <button className="w-full py-3 rounded-xl bg-[#003366] text-white font-semibold">登入</button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <input type="text" placeholder="姓名" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none" />
+                    <input type="text" placeholder="公司名稱" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none" />
+                    <input type="tel" placeholder="聯絡電話" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none" />
+                    <button className="w-full py-3 rounded-xl bg-[#003366] text-white font-semibold">儲存資料</button>
                   </div>
                 )}
               </motion.div>
