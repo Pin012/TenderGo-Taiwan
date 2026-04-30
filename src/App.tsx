@@ -24,6 +24,7 @@ const EXPLORE_SECTIONS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('search');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeQuickFilter, setActiveQuickFilter] = useState('全部標案');
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -82,10 +83,30 @@ export default function App() {
   }, []);
 
   const filteredTenders = useMemo(() => {
-    return MOCK_TENDERS.filter(tender =>
-      tender.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery]);
+    const now = new Date('2024-04-24');
+
+    return MOCK_TENDERS.filter((tender) => {
+      const matchesKeyword = tender.title.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!matchesKeyword) return false;
+
+      if (activeQuickFilter === '政府工程') {
+        return tender.category === '工程類';
+      }
+
+      if (activeQuickFilter === '資訊委託') {
+        const haystack = `${tender.title} ${tender.description ?? ''} ${tender.orgName}`.toLowerCase();
+        return tender.category === '勞務類' && (haystack.includes('資訊') || haystack.includes('系統') || haystack.includes('數位'));
+      }
+
+      if (activeQuickFilter === '近期截止') {
+        const endDate = new Date(tender.endDate);
+        const diffDays = (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 14 && tender.status === '招標中';
+      }
+
+      return true;
+    });
+  }, [searchQuery, activeQuickFilter]);
 
   const trackedTenders = useMemo(() => {
     return MOCK_TENDERS.filter(tender => trackingIds.has(tender.id));
@@ -120,7 +141,14 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-100">
       <div className="max-w-md mx-auto min-h-screen shadow-xl bg-white flex flex-col relative overflow-hidden pb-20">
         {activeTab === 'search' && (
-          <SearchHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} onFilterClick={() => setIsFilterOpen(true)} activeFilterCount={0} />
+          <SearchHeader
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onFilterClick={() => setIsFilterOpen(true)}
+            activeFilterCount={0}
+            activeQuickFilter={activeQuickFilter}
+            onQuickFilterChange={setActiveQuickFilter}
+          />
         )}
 
         {activeTab === 'tracking' && (

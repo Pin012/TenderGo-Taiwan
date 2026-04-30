@@ -10,9 +10,20 @@ interface SearchFiltersProps {
   setSearchQuery: (query: string) => void;
   onFilterClick: () => void;
   activeFilterCount: number;
+  activeQuickFilter: string;
+  onQuickFilterChange: (tag: string) => void;
 }
 
-export default function SearchHeader({ searchQuery, setSearchQuery, onFilterClick, activeFilterCount }: SearchFiltersProps) {
+const QUICK_FILTER_TAGS = ['全部標案', '政府工程', '資訊委託', '近期截止', '自訂條件'];
+
+export default function SearchHeader({
+  searchQuery,
+  setSearchQuery,
+  onFilterClick,
+  activeFilterCount,
+  activeQuickFilter,
+  onQuickFilterChange,
+}: SearchFiltersProps) {
   return (
     <div className="sticky top-0 z-40 bg-[#003366] text-white pt-6 pb-4 px-4 shadow-md">
       <div className="max-w-md mx-auto space-y-4">
@@ -62,11 +73,18 @@ export default function SearchHeader({ searchQuery, setSearchQuery, onFilterClic
         </div>
         
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide no-scrollbar">
-          {['全部標案', '政府工程', '資訊委託', '近期截止'].map((tag) => (
+          {QUICK_FILTER_TAGS.map((tag) => (
             <button 
               key={tag}
+              onClick={() => {
+                if (tag === '自訂條件') {
+                  onFilterClick();
+                  return;
+                }
+                onQuickFilterChange(tag);
+              }}
               className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-colors ${
-                tag === '全部標案' 
+                tag === activeQuickFilter
                   ? 'bg-white text-[#003366] shadow-sm' 
                   : 'bg-white/10 text-white/80 border border-white/20 hover:bg-white/20'
               }`}
