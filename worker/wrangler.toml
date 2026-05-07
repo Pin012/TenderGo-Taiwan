@@ -5,7 +5,7 @@ compatibility_date = "2026-05-06"
 [[d1_databases]]
 binding = "DB"
 database_name = "tendergo-db"
-database_id = "TODO_REPLACE_WITH_REAL_DB_ID"
+database_id = "3da49154-e2a9-4564-965e-ed3e3709de49"
 
 [vars]
 CRAWL_DAYS_WINDOW = "7"
