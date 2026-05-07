@@ -1,0 +1,16 @@
+name = "tendergo-worker"
+main = "src/index.ts"
+compatibility_date = "2026-05-06"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tendergo-db"
+database_id = "TODO_REPLACE_WITH_REAL_DB_ID"
+
+[vars]
+CRAWL_DAYS_WINDOW = "7"
+TENDER_BASE_URL = "https://web.pcc.gov.tw/prkms/tender/common/basic/readTenderBasic"
+ADMIN_RUN_TOKEN = "CHANGE_ME"
+
+[triggers]
+crons = ["0 23 * * *"]
