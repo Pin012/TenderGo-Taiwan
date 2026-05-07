@@ -12,7 +12,31 @@ import FilterOverlay from './components/FilterOverlay';
 import { MOCK_TENDERS } from './data/mockTenders';
 import { Tender } from './types/tender';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutGrid, ClipboardList, Bell, Loader2, BellDot, X, Newspaper, GraduationCap, Bot, ArrowRight, UserRound, LogIn, MessageCircleQuestion, LifeBuoy } from 'lucide-react';
+import { LayoutGrid, ClipboardList, Bell, Loader2, BellDot, X, Newspaper, GraduationCap, Bot, ArrowRight, UserRound, LogIn, MessageCircleQuestion, LifeBuoy, Share2 } from 'lucide-react';
+
+
+
+type InstallPromptPlatform = 'ios' | 'android';
+
+const INSTALL_PROMPT_KEY = 'install_prompt_state';
+const INSTALL_PROMPT_DELAY_MS = 8000;
+const INSTALL_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+const INSTALL_PROMPT_MAX_SHOWS = 3;
+
+function detectInstallPromptPlatform(): InstallPromptPlatform | null {
+  if (typeof window === 'undefined') return null;
+  const ua = window.navigator.userAgent.toLowerCase();
+  const isIos = /iphone|ipad|ipod/.test(ua);
+  const isAndroid = /android/.test(ua);
+  if (isIos) return 'ios';
+  if (isAndroid) return 'android';
+  return null;
+}
+
+function isMobileViewport() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 767px)').matches;
+}
 
 const EXPLORE_SECTIONS = [
   { title: '顧問專欄', description: '掌握最新標案策略與顧問實戰解析。', icon: ClipboardList },
@@ -41,6 +65,8 @@ export default function App() {
   });
 
   const [showNotificationList, setShowNotificationList] = useState(false);
+  const [installPromptPlatform, setInstallPromptPlatform] = useState<InstallPromptPlatform | null>(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('notification_enabled', JSON.stringify(notificationEnabled));
@@ -57,6 +83,62 @@ export default function App() {
     }, 5000);
     return () => clearTimeout(timer);
   }, [notificationEnabled]);
+
+
+  useEffect(() => {
+    const platform = detectInstallPromptPlatform();
+    if (!platform || !isMobileViewport()) return;
+
+    let persisted: { disabledForever?: boolean; shownCount?: number; lastShownAt?: number } = {};
+    try {
+      const raw = localStorage.getItem(INSTALL_PROMPT_KEY);
+      persisted = raw ? JSON.parse(raw) : {};
+    } catch {
+      persisted = {};
+    }
+
+    if (persisted.disabledForever) return;
+
+    const shownCount = persisted.shownCount ?? 0;
+    if (shownCount >= INSTALL_PROMPT_MAX_SHOWS) return;
+
+    const now = Date.now();
+    const lastShownAt = persisted.lastShownAt ?? 0;
+    if (lastShownAt > 0 && now - lastShownAt < INSTALL_PROMPT_COOLDOWN_MS) return;
+
+    const timer = window.setTimeout(() => {
+      setInstallPromptPlatform(platform);
+      setShowInstallPrompt(true);
+      localStorage.setItem(
+        INSTALL_PROMPT_KEY,
+        JSON.stringify({
+          ...persisted,
+          shownCount: shownCount + 1,
+          lastShownAt: Date.now(),
+        }),
+      );
+    }, INSTALL_PROMPT_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const dismissInstallPrompt = (disableForever = false) => {
+    setShowInstallPrompt(false);
+    if (!disableForever) return;
+    try {
+      const raw = localStorage.getItem(INSTALL_PROMPT_KEY);
+      const persisted = raw ? JSON.parse(raw) : {};
+      localStorage.setItem(
+        INSTALL_PROMPT_KEY,
+        JSON.stringify({
+          ...persisted,
+          disabledForever: true,
+        }),
+      );
+    } catch {
+      localStorage.setItem(INSTALL_PROMPT_KEY, JSON.stringify({ disabledForever: true }));
+    }
+  };
 
   // Persistence Logic: Load from localStorage on init
   const [trackingIds, setTrackingIds] = useState<Set<string>>(() => {
@@ -266,6 +348,39 @@ export default function App() {
                   </div>
                 )}
               </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+
+        <AnimatePresence>
+          {showInstallPrompt && installPromptPlatform && (
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 24 }}
+              className="fixed bottom-24 left-1/2 z-[125] w-[92%] max-w-sm -translate-x-1/2 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl backdrop-blur"
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-xl bg-[#003366]/10 p-2 text-[#003366]">
+                  <Share2 size={16} />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-slate-900">把 TenderGo 加到主畫面</h4>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    {installPromptPlatform === 'ios'
+                      ? 'Safari 右下角點「分享」，再選「加入主畫面」，下次可像 App 一樣一鍵開啟。'
+                      : 'Chrome 右上角點「⋮」選單，再點「加到主畫面」即可快速開啟 TenderGo。'}
+                  </p>
+                </div>
+                <button className="text-slate-400" onClick={() => dismissInstallPrompt(false)} aria-label="關閉提示">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <button onClick={() => dismissInstallPrompt(true)} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100">不再顯示</button>
+                <button onClick={() => dismissInstallPrompt(false)} className="rounded-lg bg-[#003366] px-3 py-1.5 text-xs font-semibold text-white">我知道了</button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
