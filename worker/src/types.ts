@@ -1,6 +1,7 @@
 export type Env = {
   DB: D1Database;
   CRAWL_DAYS_WINDOW: string;
+  CRAWL_TIMEZONE: string;
   TENDER_BASE_URL: string;
   ADMIN_RUN_TOKEN: string;
 };

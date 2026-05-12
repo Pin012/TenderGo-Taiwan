@@ -179,3 +179,57 @@ curl "http://127.0.0.1:8787/api/tenders?page=1&pageSize=5"
 npm run deploy
 curl "https://<你的-worker>.workers.dev/api/health"
 ```
+
+
+## H. 如何確認「有抓到結構化資料」
+
+完成 deploy 後，請依序執行：
+
+```bash
+# 1) 先觸發一次爬蟲
+curl "https://<你的-worker-name>.workers.dev/api/admin/run-crawl?token=<ADMIN_RUN_TOKEN>"
+
+# 2) 查最近一次抓取狀態（含筆數 + 範例欄位）
+curl "https://<你的-worker-name>.workers.dev/api/admin/crawl-status?token=<ADMIN_RUN_TOKEN>"
+```
+
+`crawl-status` 會回傳：
+- `hasData`: 是否已有資料
+- `latestFetchedDate`: 最近抓取日期
+- `latestCount`: 當天筆數
+- `sampleRows`: 3 筆結構化資料樣本（`tender_id`, `title`, `agency`, `amount_value`, `start_date`, `end_date`）
+
+若 `hasData=true` 且 `latestCount>0`，代表後端已成功抓到並寫入結構化資料。
+
+
+## I. 目前會抓到哪些欄位？（對應 DB 制式欄位）
+
+爬蟲解析後，會寫入 `tenders` 這些欄位：
+- `tender_id`
+- `title`
+- `agency`
+- `amount_text`
+- `amount_value`
+- `tender_type`
+- `start_date`
+- `end_date`
+- `source_url`
+- `source_hash`
+- `fetched_date`
+
+> `id` 與 `created_at` 是 DB 自動產生。
+
+### 這個需要先設定嗎？
+**需要。** 你一定要先套用 migration，DB 才會有這些制式欄位。
+
+```bash
+cd /workspace/TenderGo-Taiwan/worker
+npx wrangler d1 migrations apply tendergo-db --remote
+```
+
+### 怎麼確認 DB 欄位真的存在？
+```bash
+npx wrangler d1 execute tendergo-db --remote --command "PRAGMA table_info(tenders);"
+```
+
+看到上面欄位名稱就代表 schema 已建立完成，這時候才可以正常使用 `run-crawl` / `crawl-status`。

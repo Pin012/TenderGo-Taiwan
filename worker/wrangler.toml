@@ -9,6 +9,7 @@ database_id = "CHANGE_ME_DATABASE_ID"
 
 [vars]
 CRAWL_DAYS_WINDOW = "7"
+CRAWL_TIMEZONE = "Asia/Taipei"
 TENDER_BASE_URL = "https://web.pcc.gov.tw/prkms/tender/common/basic/readTenderBasic"
 ADMIN_RUN_TOKEN = "CHANGE_ME"
 
