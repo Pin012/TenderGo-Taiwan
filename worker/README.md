@@ -1,123 +1,158 @@
-# TenderGo Worker
+# TenderGo Worker（Codespaces 專用、零基礎版）
 
-## Setup
-1. `cd worker`
-2. `npm install`
-3. Create D1 and replace `database_id` in `wrangler.toml`.
-4. `npx wrangler d1 migrations apply tendergo-db --local`
-5. `npm run dev`
+> 這份文件只寫「必須做」的步驟。  
+> 按順序做，不要跳步，就能完成最小可執行部署。
 
-## Deploy
-- `npm run deploy`
+---
 
+## A. 先講清楚你到底要登入什麼
 
-## 手把手：push 完之後的完整流程
+你要登入的是：**Cloudflare 帳號（給 Wrangler 使用）**。  
+用途：讓 `wrangler` 有權限建立/更新 Worker、操作 D1。
 
-以下流程用「你現在已經把程式 push 到 GitHub」為前提。
+你不是要登入 GitHub，也不是登入前端網站。
 
-### Step 1) 在 Cloudflare 建立 D1 資料庫
+---
 
-```bash
-cd worker
-npx wrangler login
-npx wrangler d1 create tendergo-db
-```
+## B. 必填設定（先填再跑指令）
 
-執行後會拿到 `database_id`，把它貼到 `worker/wrangler.toml` 的 `database_id`。
+請先打開 `worker/wrangler.toml`，確認以下欄位：
 
-### Step 2) 設定敏感參數（不要硬寫在檔案）
+1. `name`：你的 Worker 名稱（可沿用 `tendergo-worker`）
+2. `database_name`：資料庫名稱（預設 `tendergo-db`）
+3. `database_id`：**必須是你 Cloudflare D1 的真實 ID**，不能是 `CHANGE_ME_DATABASE_ID`
+4. `ADMIN_RUN_TOKEN`：先放本機開發值（例如 `dev-change-me-please`），正式環境會再用 secret 覆蓋
 
-先把 `wrangler.toml` 內的 `ADMIN_RUN_TOKEN` 當成開發值，正式環境請改用 secret：
+> 如果你目前「只有 DB，還沒有 Worker」，沒關係。第一次 `wrangler deploy` 會自動建立 Worker。
 
-```bash
-npx wrangler secret put ADMIN_RUN_TOKEN
-```
+---
 
-輸入一段長字串，例如 `tendergo-admin-2026-very-long-random`。
+## C. 唯一正確順序（照抄即可）
 
-### Step 3) 套用資料表 migration
+以下全部在 Codespaces 終端機執行：
 
-本機測試資料庫：
+### Step 1) 進入 worker 目錄
 
 ```bash
-npx wrangler d1 migrations apply tendergo-db --local
+cd /workspace/TenderGo-Taiwan/worker
 ```
 
-遠端正式資料庫：
+### Step 2) 安裝套件
+
+```bash
+npm install
+```
+
+### Step 3) 登入 Cloudflare（Codespaces 必用）
+
+```bash
+npx wrangler login --browser=false --callback-host 0.0.0.0 --callback-port 8976
+```
+
+授權完成後立刻驗證：
+
+```bash
+npx wrangler whoami
+```
+
+- 有顯示你的 Cloudflare 使用者資訊 = 成功
+- 失敗就不要往下做，先把登入解決
+
+### Step 4) 檢查你填的 `database_id`
+
+```bash
+cat wrangler.toml
+```
+
+確認 `database_id` 不是 `CHANGE_ME_DATABASE_ID`。
+
+### Step 5) 套用 D1 migration（遠端正式 DB）
 
 ```bash
 npx wrangler d1 migrations apply tendergo-db --remote
 ```
 
-### Step 4) 本機啟動 worker
+> 這行成功，代表資料表已建立在 Cloudflare D1。
+
+### Step 6) 設定正式 secret（覆蓋 `ADMIN_RUN_TOKEN`）
 
 ```bash
-npm install
-npm run dev
+npx wrangler secret put ADMIN_RUN_TOKEN
 ```
 
-啟動後記下本機 URL（通常是 `http://127.0.0.1:8787`）。
+輸入你自己的長字串 token。
 
-### Step 5) 先測健康檢查 API
-
-```bash
-curl "http://127.0.0.1:8787/api/health"
-```
-
-看到 `ok: true` 代表後端有正常起來。
-
-### Step 6) 手動觸發一次爬蟲（非常重要）
-
-```bash
-curl "http://127.0.0.1:8787/api/admin/run-crawl?token=你的ADMIN_RUN_TOKEN"
-```
-
-你應該會拿到 `inserted / ignored / failed` 的統計結果。
-
-### Step 7) 查詢是否真的入庫
-
-```bash
-curl "http://127.0.0.1:8787/api/tenders?page=1&pageSize=5"
-```
-
-有資料列出就表示「抓取 -> 解析 -> 入庫 -> 查詢」整條鏈路打通。
-
-### Step 8) 部署到 Cloudflare Workers
+### Step 7) 部署 Worker（若不存在會自動建立）
 
 ```bash
 npm run deploy
 ```
 
-部署完成後，測正式網址：
+### Step 8) 驗證正式 API
 
 ```bash
-curl "https://<你的-worker>.workers.dev/api/health"
+curl "https://<你的-worker-name>.workers.dev/api/health"
 ```
 
-### Step 9) 驗證每日排程是否會跑
+`<你的-worker-name>` 要和 `wrangler.toml` 的 `name` 一樣。
 
-1. 到 Cloudflare Dashboard -> Workers -> 你的 service -> Triggers，確認 cron 已存在。
-2. 在 Logs 看是否每天有執行記錄。
-3. 若當天沒新資料，`ignored` 變多是正常現象。
+### Step 9) 手動觸發一次爬蟲
 
-### Step 10) 前端開始改接後端 API
+```bash
+curl "https://<你的-worker-name>.workers.dev/api/admin/run-crawl?token=<你剛設定的ADMIN_RUN_TOKEN>"
+```
 
-在前端把資料來源改成：
-- 列表頁：`GET /api/tenders`
-- 詳細頁：`GET /api/tenders/:tenderId`
+### Step 10) 查詢是否有資料
 
-建議先只改列表頁，確認穩定後再改完整篩選。
+```bash
+curl "https://<你的-worker-name>.workers.dev/api/tenders?page=1&pageSize=5"
+```
 
 ---
 
-## 常見錯誤排查（新手版）
+## D. 如果你還沒有 D1 database_id（才做這段）
 
-- **401 Unauthorized（手動觸發時）**
-  - token 錯了，確認 `?token=` 與 secret 一致。
-- **D1_ERROR: no such table: tenders**
-  - migration 還沒 apply 到對應環境（local 或 remote）。
-- **抓不到資料但 API 正常**
-  - 來源頁面可能改版，需調整 `parseTenderTable.ts`。
-- **部署成功但查不到資料**
-  - 你可能只 apply 了 local migration，忘了 remote migration。
+只有在「你沒有 D1 ID」時才執行：
+
+```bash
+npx wrangler d1 create tendergo-db
+```
+
+執行後把回傳的 `database_id` 貼回 `wrangler.toml`，再回到 Step 5。
+
+---
+
+## E. 嚴格防呆（最常出錯 5 件事）
+
+1. **還沒 `whoami` 成功就 deploy** → 會報登入相關錯誤
+2. `database_id` 還是 placeholder → migration/deploy 失敗
+3. 在 repo 根目錄跑 deploy（不是 `worker/`）→ 用錯設定
+4. `worker name` 和你測試網址不一致 → health URL 打錯
+5. 忘了設定 secret 就打 admin API → 401
+
+---
+
+## F. 一次貼上版（已有 database_id 的人）
+
+```bash
+cd /workspace/TenderGo-Taiwan/worker
+npm install
+npx wrangler login --browser=false --callback-host 0.0.0.0 --callback-port 8976
+npx wrangler whoami
+cat wrangler.toml
+npx wrangler d1 migrations apply tendergo-db --remote
+npx wrangler secret put ADMIN_RUN_TOKEN
+npm run deploy
+curl "https://<你的-worker-name>.workers.dev/api/health"
+curl "https://<你的-worker-name>.workers.dev/api/admin/run-crawl?token=<你剛設定的ADMIN_RUN_TOKEN>"
+curl "https://<你的-worker-name>.workers.dev/api/tenders?page=1&pageSize=5"
+```
+
+---
+
+## G. 版本一致性（本專案）
+
+- Worker 專案 deploy 指令：`wrangler deploy`（由 `npm run deploy` 呼叫）
+- Worker 專案 dev 指令：`wrangler dev`
+- `worker/package.json` 內 wrangler 版本：`^4.15.2`（你本機跑到 `4.90.0` 也可相容）
 
