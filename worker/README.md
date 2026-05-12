@@ -208,11 +208,17 @@ curl "https://<你的-worker-name>.workers.dev/api/admin/crawl-status?token=<ADM
 - `tender_id`
 - `title`
 - `agency`
+- `serial_no`
+- `bidding_method`
 - `amount_text`
 - `amount_value`
 - `tender_type`
 - `start_date`
 - `end_date`
+- `award_status`
+- `award_amount_text`
+- `award_amount_value`
+- `winning_vendor`
 - `source_url`
 - `source_hash`
 - `fetched_date`
