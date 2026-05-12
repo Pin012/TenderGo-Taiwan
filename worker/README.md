@@ -156,3 +156,26 @@ curl "https://<你的-worker-name>.workers.dev/api/tenders?page=1&pageSize=5"
 - Worker 專案 dev 指令：`wrangler dev`
 - `worker/package.json` 內 wrangler 版本：`^4.15.2`（你本機跑到 `4.90.0` 也可相容）
 
+---
+
+## 快速指令總表（可直接複製）
+
+```bash
+cd worker
+npm install
+npx wrangler login --browser=false
+npx wrangler d1 create tendergo-db
+npx wrangler secret put ADMIN_RUN_TOKEN
+npx wrangler d1 migrations apply tendergo-db --local
+npx wrangler d1 migrations apply tendergo-db --remote
+# 第一次 deploy 會自動建立 worker
+npm run deploy
+# 本機開發
+npm run dev
+# 新開終端機測試
+curl "http://127.0.0.1:8787/api/health"
+curl "http://127.0.0.1:8787/api/admin/run-crawl?token=你的ADMIN_RUN_TOKEN"
+curl "http://127.0.0.1:8787/api/tenders?page=1&pageSize=5"
+npm run deploy
+curl "https://<你的-worker>.workers.dev/api/health"
+```
