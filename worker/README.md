@@ -18,13 +18,54 @@
 
 ---
 
-## 1. 先確認環境（不要跳過）
+## 0-1. 先改這 3 個地方（最小可執行必要條件）
+
+在 Codespaces 跑任何指令前，請先確認以下三項：
+
+1. `worker/wrangler.toml` 的 `database_id` 不是預設字串 `CHANGE_ME_DATABASE_ID`
+2. 你有把 `ADMIN_RUN_TOKEN` 設成自己的值（本機用 `[vars]`、正式用 `wrangler secret put`）
+3. `name = "tendergo-worker"` 是否要改成你自己的 worker 名稱（避免名稱衝突）
+
+> 只要第 1 項沒改，`d1 migrations apply --remote` 幾乎一定會失敗。
+
+---
+
+## 0-2. 你問的重點：要先在 Cloudflare 手動建立 Worker 嗎？
+
+**不用先手動建立。**  
+在這個專案裡，通常你只要把 `worker/wrangler.toml` 設好，然後執行：
+
+```bash
+cd worker
+npm run deploy
+```
+
+Wrangler 會用 `wrangler.toml` 裡的 `name` 自動建立（或更新）同名 Worker。
+
+### 什麼時候才需要去 Dashboard 手動建立？
+
+- 你想先在 UI 建空的 Worker 再綁定
+- 你要先在 UI 上做特別設定（例如自訂路由）
+
+但就這個專案來說，**不是必要步驟**。
+
+### 你現在的狀況（有 DB、還沒 Worker）最短路徑
+
+1. 確認 `worker/wrangler.toml` 的 `name` 與 `database_id` 已填好
+2. 執行 `npx wrangler d1 migrations apply tendergo-db --remote`
+3. 執行 `npm run deploy`（這一步會建立 Worker）
+4. 測試 `https://<你的-worker>.workers.dev/api/health`
+
+---
+
+## 1. Codespaces 前置確認（不要跳過）
 
 請先確認你有安裝：
 
 - Node.js（建議 20 以上）
 - npm（通常會跟 Node.js 一起安裝）
 - Cloudflare 帳號（可登入 dashboard）
+- 你目前的終端機就在 GitHub Codespaces
 
 可先執行：
 
@@ -51,13 +92,21 @@ cd worker
 npm install
 ```
 
-### Step 2-3. 登入 Cloudflare（第一次一定要做）
+### Step 2-3. 登入 Cloudflare（Codespaces 固定用這個）
+
+因為 Codespaces 沒有本機桌面，**請直接使用**：
 
 ```bash
-npx wrangler login
+npx wrangler login --browser=false
 ```
 
-成功時會開瀏覽器讓你授權。
+Wrangler 會在終端機顯示登入連結，請手動複製到你自己的瀏覽器開啟並授權。
+
+授權後可立刻確認：
+
+```bash
+npx wrangler whoami
+```
 
 ---
 
@@ -75,7 +124,7 @@ npx wrangler d1 create tendergo-db
 
 ### Step 3-2. 設定到 `wrangler.toml`
 
-把剛剛取得的 `database_id`，貼到 `worker/wrangler.toml` 對應欄位。  
+把剛剛取得的 `database_id`，貼到 `worker/wrangler.toml` 對應欄位（覆蓋 `CHANGE_ME_DATABASE_ID`）。  
 **不要打錯字、多空格或少引號**，否則會連不到資料庫。
 
 ---
@@ -125,6 +174,10 @@ npm run dev
 ```
 
 正常情況下你會看到本機網址（常見是 `http://127.0.0.1:8787`）。
+
+> 在 Codespaces：
+> - 用終端機 `curl` 測試時，`127.0.0.1:8787` 可以直接用。
+> - 若要用你電腦瀏覽器開頁面，請到 **Ports** 分頁把 8787 設為 Public/Private（依需求），再用轉發網址。
 
 ---
 
@@ -196,6 +249,23 @@ curl "https://<你的-worker>.workers.dev/api/health"
 
 ## 常見錯誤與排查（新手強化版）
 
+### 0) `Missing file or directory: xdg-open`（你這次遇到的錯誤）
+
+這個錯誤常見於：
+
+- GitHub Codespaces
+- 遠端 Linux 主機
+- 沒有 GUI 的 Docker / VM
+
+原因：Wrangler 嘗試「自動開瀏覽器」失敗，不是 D1 指令本身壞掉。
+
+排查建議：
+
+1. 先執行 `npx wrangler login --browser=false`
+2. 手動複製終端機提供的 OAuth URL 到你自己的瀏覽器
+3. 完成授權後，再執行 `npx wrangler d1 create tendergo-db`
+4. 若仍失敗，執行 `npx wrangler whoami` 確認登入狀態
+
 ### 1) `401 Unauthorized`（觸發管理 API 時）
 
 可能原因：
@@ -253,7 +323,7 @@ curl "https://<你的-worker>.workers.dev/api/health"
 ## 最後檢查清單（照這張核對最不容易出錯）
 
 - [ ] `npm install` 已完成
-- [ ] `wrangler login` 已成功
+- [ ] `wrangler login --browser=false` 已成功
 - [ ] D1 `database_id` 已正確填入 `wrangler.toml`
 - [ ] `ADMIN_RUN_TOKEN` 已用 secret 設定
 - [ ] migration 已執行（local + remote）
@@ -266,16 +336,67 @@ curl "https://<你的-worker>.workers.dev/api/health"
 
 ---
 
+
+## Codespaces 專用指令修整（重點）
+
+你已確定都在 Codespaces 執行，請用下面版本：
+
+1. **登入 Cloudflare**
+   - ✅ 建議：`npx wrangler login --browser=false`
+   - ⚠️ 不建議：`npx wrangler login`（可能因 `xdg-open` 失敗）
+
+2. **本機 API 測試**
+   - ✅ 終端機內：
+     - `curl "http://127.0.0.1:8787/api/health"`
+   - ✅ 從你電腦瀏覽器測試：
+     - 改用 Codespaces 的 Port Forwarding URL（不是 `127.0.0.1`）
+
+3. **部署後正式環境測試**
+   - ✅ 用 workers.dev 網址測，與 Codespaces 無關：
+     - `curl "https://<你的-worker>.workers.dev/api/health"`
+
+4. **當 `wrangler` 行為異常時先做這三個檢查**
+   - `npx wrangler whoami`（是否已登入正確帳號）
+   - `pwd`（是否在 `worker/`）
+   - `cat wrangler.toml`（`database_id` 是否已填入）
+
+---
+
+## 專案部署/爬蟲邏輯檢視結果（你這次加問）
+
+我已檢視 worker 主要流程，最小可執行需要注意：
+
+1. **D1 綁定一定要是你自己的 DB**
+   - 來源檔：`worker/wrangler.toml` 的 `[[d1_databases]]`。
+   - 若 `database_id` 沒換成你剛建立的值，遠端 migration 與正式 API 會失敗。
+
+2. **管理 token 目前程式以 `c.env.ADMIN_RUN_TOKEN` 比對**
+   - 來源檔：`worker/src/index.ts`。
+   - 若 token 未設定，`/api/admin/run-crawl` 會回 401。
+
+3. **資料表必須先 migration，再跑爬蟲**
+   - 來源檔：`worker/migrations/0001_init.sql` 與 `worker/src/db/tenderRepo.ts`。
+   - 否則會出現 `no such table: tenders`。
+
+4. **爬蟲解析依賴來源網站 table 結構**
+   - 來源檔：`worker/src/crawler/parseTenderTable.ts`。
+   - 如果來源 HTML 大改版，可能抓到 0 筆，這是邏輯特性，不是部署壞掉。
+
+---
+
 ## 快速指令總表（可直接複製）
 
 ```bash
 cd worker
 npm install
-npx wrangler login
+npx wrangler login --browser=false
 npx wrangler d1 create tendergo-db
 npx wrangler secret put ADMIN_RUN_TOKEN
 npx wrangler d1 migrations apply tendergo-db --local
 npx wrangler d1 migrations apply tendergo-db --remote
+# 第一次 deploy 會自動建立 worker
+npm run deploy
+# 本機開發
 npm run dev
 # 新開終端機測試
 curl "http://127.0.0.1:8787/api/health"
