@@ -9,11 +9,12 @@ import { insertTenders } from '../db/tenderRepo';
 
 export async function crawlAndStore(env: Env): Promise<{ stats: CrawlStats; fetchedDate: string; url: string }> {
   const days = getWindowDays(env);
-  const { start, end } = getRange(days);
+  const tz = env.CRAWL_TIMEZONE || 'Asia/Taipei';
+  const { start, end } = getRange(days, tz);
   const url = buildSearchUrl(env.TENDER_BASE_URL, start, end);
   const html = await fetchTenderHtml(url);
   const parsed = await parseTenderTable(html, url);
-  const fetchedDate = toYmd(new Date());
+  const fetchedDate = toYmd(new Date(), tz);
   const stats = await insertTenders(getDb(env), parsed, fetchedDate);
   return { stats, fetchedDate, url };
 }
