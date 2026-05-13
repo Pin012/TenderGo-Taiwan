@@ -5,13 +5,12 @@ compatibility_date = "2026-05-06"
 [[d1_databases]]
 binding = "DB"
 database_name = "tendergo-db"
-database_id = "CHANGE_ME_DATABASE_ID"
+database_id = "3da49154-e2a9-4564-965e-ed3e3709de49"
 
 [vars]
 CRAWL_DAYS_WINDOW = "7"
 CRAWL_TIMEZONE = "Asia/Taipei"
 TENDER_BASE_URL = "https://web.pcc.gov.tw/prkms/tender/common/basic/readTenderBasic"
-ADMIN_RUN_TOKEN = "CHANGE_ME"
 
 [triggers]
 crons = ["0 23 * * *"]
