@@ -23,6 +23,7 @@ const INSTALL_PROMPT_DELAY_MS = 8000;
 const INSTALL_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const INSTALL_PROMPT_MAX_SHOWS = 3;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const ENABLE_MOCK_FALLBACK = import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true';
 
 function detectInstallPromptPlatform(): InstallPromptPlatform | null {
   if (typeof window === 'undefined') return null;
@@ -54,6 +55,7 @@ export default function App() {
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [dataSource, setDataSource] = useState<'api' | 'mock'>('api');
   const [settingsPanel, setSettingsPanel] = useState<'login' | 'profile' | null>(null);
 
   const [notificationEnabled, setNotificationEnabled] = useState<boolean>(() => {
@@ -169,10 +171,21 @@ export default function App() {
         const data = await response.json() as { items?: Array<Record<string, unknown>> };
         const items = Array.isArray(data.items) ? data.items : [];
         const mapped = items.map(mapApiTenderToUiTender).filter((item): item is Tender => item !== null);
-        if (isMounted) setTenders(mapped);
+        if (isMounted) {
+          setTenders(mapped);
+          setDataSource('api');
+        }
       } catch (error) {
-        console.warn('Use mock tenders because API is unavailable:', error);
-        if (isMounted) setTenders(MOCK_TENDERS);
+        console.warn('Tender API unavailable:', error);
+        if (!isMounted) return;
+
+        if (ENABLE_MOCK_FALLBACK) {
+          setTenders(MOCK_TENDERS);
+          setDataSource('mock');
+        } else {
+          setTenders([]);
+          setDataSource('api');
+        }
       } finally {
         if (isMounted) setIsInitialLoading(false);
       }
@@ -251,6 +264,12 @@ export default function App() {
             activeQuickFilter={activeQuickFilter}
             onQuickFilterChange={setActiveQuickFilter}
           />
+        )}
+
+        {activeTab === 'search' && (
+          <div className="px-4 pt-3 text-xs text-slate-500">
+            目前資料來源：{dataSource === 'api' ? '後端 API' : '前端 mock（API 失敗時 fallback）'}
+          </div>
         )}
 
         {activeTab === 'tracking' && (
