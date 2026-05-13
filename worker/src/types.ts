@@ -10,11 +10,17 @@ export type ParsedTender = {
   tenderId: string;
   title: string | null;
   agency: string | null;
+  serialNo: string | null;
+  biddingMethod: string | null;
   amountText: string | null;
   amountValue: number | null;
   tenderType: string | null;
   startDate: string | null;
   endDate: string | null;
+  awardStatus: string | null;
+  awardAmountText: string | null;
+  awardAmountValue: number | null;
+  winningVendor: string | null;
   sourceUrl: string;
   sourceHash: string;
 };
