@@ -23,6 +23,7 @@ const INSTALL_PROMPT_DELAY_MS = 8000;
 const INSTALL_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const INSTALL_PROMPT_MAX_SHOWS = 3;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+console.log('API_BASE_URL =', API_BASE_URL);
 const ENABLE_MOCK_FALLBACK = import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true';
 
 function detectInstallPromptPlatform(): InstallPromptPlatform | null {

@@ -1,19 +1,41 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+
 import { healthRoute } from './routes/health';
 import { tenderRoute } from './routes/tenders';
 import { crawlAndStore } from './services/crawlAndStore';
+
 import type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
+
+// CORS
+app.use(
+  '*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+// Routes
 app.route('/', healthRoute);
 app.route('/', tenderRoute);
 
-
-
+// Admin - crawl status
 app.get('/api/admin/crawl-status', async (c) => {
   const token = new URL(c.req.url).searchParams.get('token');
+
   if (token !== c.env.ADMIN_RUN_TOKEN) {
-    return c.json({ ok: false, code: 'UNAUTHORIZED', message: 'Invalid token' }, 401);
+    return c.json(
+      {
+        ok: false,
+        code: 'UNAUTHORIZED',
+        message: 'Invalid token',
+      },
+      401
+    );
   }
 
   const latest = await c.env.DB.prepare(
@@ -25,7 +47,11 @@ app.get('/api/admin/crawl-status', async (c) => {
   ).first<{ fetched_date: string; count: number }>();
 
   if (!latest) {
-    return c.json({ ok: true, hasData: false, message: 'No crawled tenders in database yet.' });
+    return c.json({
+      ok: true,
+      hasData: false,
+      message: 'No crawled tenders in database yet.',
+    });
   }
 
   const samples = await c.env.DB.prepare(
@@ -34,29 +60,49 @@ app.get('/api/admin/crawl-status', async (c) => {
      WHERE fetched_date = ?
      ORDER BY id DESC
      LIMIT 3`
-  ).bind(latest.fetched_date).all();
+  )
+    .bind(latest.fetched_date)
+    .all();
 
   return c.json({
     ok: true,
     hasData: true,
     latestFetchedDate: latest.fetched_date,
     latestCount: Number(latest.count ?? 0),
-    sampleRows: samples.results
+    sampleRows: samples.results,
   });
 });
 
+// Admin - manual crawl trigger
 app.get('/api/admin/run-crawl', async (c) => {
   const token = new URL(c.req.url).searchParams.get('token');
+
   if (token !== c.env.ADMIN_RUN_TOKEN) {
-    return c.json({ ok: false, code: 'UNAUTHORIZED', message: 'Invalid token' }, 401);
+    return c.json(
+      {
+        ok: false,
+        code: 'UNAUTHORIZED',
+        message: 'Invalid token',
+      },
+      401
+    );
   }
+
   const result = await crawlAndStore(c.env);
-  return c.json({ ok: true, ...result });
+
+  return c.json({
+    ok: true,
+    ...result,
+  });
 });
 
 export default {
   fetch: app.fetch,
-  scheduled: async (_event: ScheduledEvent, env: Env): Promise<void> => {
+
+  scheduled: async (
+    _event: ScheduledEvent,
+    env: Env
+  ): Promise<void> => {
     await crawlAndStore(env);
-  }
+  },
 };
