@@ -40,14 +40,19 @@ function splitTenderIdAndTitle(cellText: string): { tenderId: string; title: str
 }
 
 function decodePageCode2ImgText(text: string): string {
-  const matches = [...text.matchAll(/pageCode2Img\("([^"]+)"\)/g)].map((m) => m[1]?.trim()).filter(Boolean) as string[];
-  if (matches.length > 0) return matches.join(' ');
-  return text
+  const decodedMatches = [...text.matchAll(/pageCode2Img\("([^"]+)"\)/g)]
+    .map((m) => m[1]?.trim())
+    .filter(Boolean) as string[];
+  const plainText = text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line && !line.includes('pageCode2Img(') && !line.includes(').html(') && !line.startsWith('var '))
     .join(' ')
     .trim();
+
+  if (decodedMatches.length === 0) return plainText;
+  if (!plainText) return decodedMatches.join(' ');
+  return `${plainText}\n${decodedMatches.join(' ')}`;
 }
 
 function findHeaderRowIndex(rows: Array<{ querySelectorAll: (selector: string) => any[] }>): number {
