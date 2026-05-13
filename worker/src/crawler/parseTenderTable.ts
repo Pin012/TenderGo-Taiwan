@@ -39,6 +39,17 @@ function splitTenderIdAndTitle(cellText: string): { tenderId: string; title: str
   };
 }
 
+function decodePageCode2ImgText(text: string): string {
+  const matches = [...text.matchAll(/pageCode2Img\("([^"]+)"\)/g)].map((m) => m[1]?.trim()).filter(Boolean) as string[];
+  if (matches.length > 0) return matches.join(' ');
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.includes('pageCode2Img(') && !line.includes(').html(') && !line.startsWith('var '))
+    .join(' ')
+    .trim();
+}
+
 function findHeaderRowIndex(rows: Array<{ querySelectorAll: (selector: string) => any[] }>): number {
   for (let i = 0; i < rows.length; i += 1) {
     const headers = [...rows[i].querySelectorAll('th,td')].map((cell) => normalizeHeader(cell.textContent?.trim() ?? ''));
@@ -56,22 +67,22 @@ export async function parseTenderTable(html: string, sourceUrl: string): Promise
 
   const headerRowIndex = findHeaderRowIndex(rows);
   const headerCells = [...rows[headerRowIndex].querySelectorAll('th,td')].map((cell) => normalizeHeader(cell.textContent?.trim() ?? ''));
-  const idxTenderId = findHeaderIndex(headerCells, ['標案案號', '案號', '招標案號'], 1);
-  const idxTitle = findHeaderIndex(headerCells, ['標案名稱', '案名', '標的名稱'], 2);
+  const idxTenderId = findHeaderIndex(headerCells, ['標案案號', '案號', '招標案號'], 2);
+  const idxTitle = findHeaderIndex(headerCells, ['標案名稱', '案名', '標的名稱'], 3);
   const idxSerialNo = findHeaderIndex(headerCells, ['項次'], 0);
   const idxAgency = findHeaderIndex(headerCells, ['機關名稱', '招標機關', '機關'], 1);
-  const idxAmount = findHeaderIndex(headerCells, ['預算金額', '採購金額', '金額'], 4);
+  const idxAmount = findHeaderIndex(headerCells, ['預算金額', '採購金額', '金額'], 9);
   const idxBiddingMethod = findHeaderIndex(headerCells, ['招標方式'], 5);
   const idxTenderType = findHeaderIndex(headerCells, ['採購性質', '採購類別', '標案類型'], 6);
-  const idxStartDate = findHeaderIndex(headerCells, ['公告日期', '上網日期', '刊登日期'], 6);
-  const idxEndDate = findHeaderIndex(headerCells, ['截止投標', '截止日期', '截止時間'], 7);
+  const idxStartDate = findHeaderIndex(headerCells, ['公告日期', '上網日期', '刊登日期'], 7);
+  const idxEndDate = findHeaderIndex(headerCells, ['截止投標', '截止日期', '截止時間'], 8);
   const idxAwardStatus = findHeaderIndex(headerCells, ['決標狀態'], -1);
   const idxAwardAmount = findHeaderIndex(headerCells, ['決標金額'], -1);
   const idxWinningVendor = findHeaderIndex(headerCells, ['得標廠商'], -1);
 
   const out: ParsedTender[] = [];
   for (const tr of rows.slice(headerRowIndex + 1)) {
-    const tds = [...tr.querySelectorAll('td')].map((td) => td.textContent?.trim() ?? '');
+    const tds = [...tr.querySelectorAll('td')].map((td) => decodePageCode2ImgText(td.textContent?.trim() ?? ''));
     if (tds.length < 3) continue;
     const joined = tds.join('|');
     const sourceHash = await sha256Hex(joined);
