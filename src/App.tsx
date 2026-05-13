@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import SearchHeader from './components/SearchHeader';
 import BottomNav from './components/BottomNav';
 import TenderCard from './components/TenderCard';
@@ -22,6 +22,7 @@ const INSTALL_PROMPT_KEY = 'install_prompt_state';
 const INSTALL_PROMPT_DELAY_MS = 8000;
 const INSTALL_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const INSTALL_PROMPT_MAX_SHOWS = 3;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 function detectInstallPromptPlatform(): InstallPromptPlatform | null {
   if (typeof window === 'undefined') return null;
@@ -46,6 +47,7 @@ const EXPLORE_SECTIONS = [
 ];
 
 export default function App() {
+  const [tenders, setTenders] = useState<Tender[]>([]);
   const [activeTab, setActiveTab] = useState('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeQuickFilter, setActiveQuickFilter] = useState('全部標案');
@@ -158,16 +160,34 @@ export default function App() {
 
   // Simulate initial data fetch
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
+    let isMounted = true;
+
+    const fetchTenders = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/tenders?page=1&pageSize=100`);
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+        const data = await response.json() as { items?: Array<Record<string, unknown>> };
+        const items = Array.isArray(data.items) ? data.items : [];
+        const mapped = items.map(mapApiTenderToUiTender).filter((item): item is Tender => item !== null);
+        if (isMounted) setTenders(mapped);
+      } catch (error) {
+        console.warn('Use mock tenders because API is unavailable:', error);
+        if (isMounted) setTenders(MOCK_TENDERS);
+      } finally {
+        if (isMounted) setIsInitialLoading(false);
+      }
+    };
+
+    fetchTenders();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filteredTenders = useMemo(() => {
     const now = new Date('2024-04-24');
 
-    return MOCK_TENDERS.filter((tender) => {
+    return tenders.filter((tender) => {
       const matchesKeyword = tender.title.toLowerCase().includes(searchQuery.toLowerCase());
       if (!matchesKeyword) return false;
 
@@ -188,11 +208,11 @@ export default function App() {
 
       return true;
     });
-  }, [searchQuery, activeQuickFilter]);
+  }, [searchQuery, activeQuickFilter, tenders]);
 
   const trackedTenders = useMemo(() => {
-    return MOCK_TENDERS.filter(tender => trackingIds.has(tender.id));
-  }, [trackingIds]);
+    return tenders.filter(tender => trackingIds.has(tender.id));
+  }, [trackingIds, tenders]);
 
   const handleTrack = (id: string) => {
     setTrackingIds(prev => {
@@ -413,7 +433,43 @@ export default function App() {
   );
 }
 
-function MenuHeading({ children }: { children: React.ReactNode }) {
+function mapApiTenderToUiTender(item: Record<string, unknown>): Tender | null {
+  const tenderId = typeof item.tender_id === 'string' ? item.tender_id : null;
+  if (!tenderId) return null;
+
+  const title = typeof item.title === 'string' && item.title.trim() ? item.title : '（無標題）';
+  const orgName = typeof item.agency === 'string' && item.agency.trim() ? item.agency : '（未提供機關）';
+  const budget = typeof item.amount_value === 'number' ? item.amount_value : 0;
+  const publishDate = typeof item.start_date === 'string' && item.start_date ? item.start_date : '1970-01-01';
+  const endDate = typeof item.end_date === 'string' && item.end_date ? item.end_date : publishDate;
+  const type = typeof item.bidding_method === 'string' && item.bidding_method.trim() ? item.bidding_method : '未分類';
+  const status = normalizeStatus(item.award_status);
+
+  return {
+    id: tenderId,
+    title,
+    orgName,
+    budget,
+    publishDate,
+    endDate,
+    status,
+    type,
+    category: '未分類',
+    location: '全台',
+    description: undefined,
+  };
+}
+
+function normalizeStatus(raw: unknown): Tender['status'] {
+  if (typeof raw !== 'string') return '待追蹤';
+  if (raw.includes('決標')) return '決標';
+  if (raw.includes('流標')) return '流標';
+  if (raw.includes('廢標')) return '廢標';
+  if (raw.includes('招標')) return '招標中';
+  return '待追蹤';
+}
+
+function MenuHeading({ children }: { children: ReactNode }) {
   return <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2 mb-2">{children}</h3>;
 }
 

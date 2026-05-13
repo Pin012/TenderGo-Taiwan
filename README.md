@@ -23,7 +23,8 @@
 - **Animation**: Motion (formerly Framer Motion)
 - **Icons**: Lucide React
 - **Data Source**: 
-  - 本階段使用 `mockData` 模擬。
+  - 前端優先呼叫 Worker API (`/api/tenders`)。
+  - 若 API 不可用，會 fallback 到 `mockData` 模擬資料，確保 UI 可展示。
   - 資料結構參考 [openfunltd/pcc.g0v.ronny.tw](https://github.com/openfunltd/pcc.g0v.ronny.tw) 開源專案。
 
 ## 🚀 快速上手 (Development)
@@ -36,6 +37,9 @@
 ```bash
 # 安裝依賴
 npm install
+
+# 設定前端 API Base URL（可留空，預設同網域）
+cp .env.example .env
 
 # 啟動開發伺服器
 npm run dev
