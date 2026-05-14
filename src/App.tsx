@@ -358,7 +358,7 @@ export default function App() {
 
         {activeTab === 'search' && (
           <div className="px-4 pt-3 text-xs text-slate-500">
-            目前資料來源：{dataSource === 'api' ? 'DATABASE' : '前端 mock（API 失敗時 fallback）'}
+            目前資料來源：{dataSource === 'api' ? '政府電子採購網' : '前端 mock（API 失敗時 fallback）'}
           </div>
         )}
 
