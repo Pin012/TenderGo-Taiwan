@@ -13,7 +13,12 @@ const querySchema = z.object({
 export const tenderRoute = new Hono<{ Bindings: Env }>();
 
 tenderRoute.get('/api/tenders', async (c) => {
-  const q = querySchema.parse(Object.fromEntries(new URL(c.req.url).searchParams.entries()));
+  const searchParams = new URL(c.req.url).searchParams;
+  const rawQuery: Record<string, string> = {};
+  searchParams.forEach((value, key) => {
+    rawQuery[key] = value;
+  });
+  const q = querySchema.parse(rawQuery);
   const where: string[] = [];
   const binds: unknown[] = [];
   if (q.date) { where.push('fetched_date = ?'); binds.push(q.date); }
