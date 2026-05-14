@@ -102,7 +102,7 @@ export default function SearchHeader({
             onClick={onCustomConditionClick}
             className="whitespace-nowrap px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-colors bg-[#ffffff26] text-white border border-dashed border-white/50 hover:bg-[#ffffff33]"
           >
-            + 自訂條件
+            + 自訂篩選條件
           </button>
         </div>
       </div>
