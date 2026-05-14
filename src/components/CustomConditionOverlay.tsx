@@ -25,7 +25,7 @@ export default function CustomConditionOverlay({ isOpen, onClose, currentFilters
     <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed inset-x-0 bottom-0 top-[10%] bg-white rounded-t-[32px] z-[80] flex flex-col overflow-hidden shadow-2xl shadow-blue-900/40">
       <div className="px-6 pt-6 pb-4">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-2xl font-bold">{isEditing ? '編輯標籤' : '自訂篩選條件'}</h2>
+          <h2 className="text-2xl font-bold">{isEditing ? '編輯篩選標籤' : '自訂篩選標籤'}</h2>
           <button onClick={onClose} className="p-2 bg-slate-100 text-slate-500 rounded-full"><X size={24} /></button>
         </div>
         <div className="mt-2 bg-[#003366] rounded-2xl p-4">
