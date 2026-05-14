@@ -39,6 +39,23 @@ function getTodayInTaipei(): string {
   return `${y}-${m}-${d}`;
 }
 
+function normalizeDateFromApi(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim();
+  if (!value) return null;
+  const direct = value.replace(/\//g, '-');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
+  const roc = value.match(/^(\d{2,3})[/-](\d{1,2})[/-](\d{1,2})$/);
+  if (roc) {
+    const y = String(Number(roc[1]) + 1911);
+    const m = roc[2].padStart(2, '0');
+    const d = roc[3].padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).format(parsed);
+}
 
 function detectInstallPromptPlatform(): InstallPromptPlatform | null {
   if (typeof window === 'undefined') return null;
@@ -186,7 +203,15 @@ export default function App() {
         if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         const data = await response.json() as { items?: Array<Record<string, unknown>> };
         const items = Array.isArray(data.items) ? data.items : [];
-        const mapped = items.map(mapApiTenderToUiTender).filter((item): item is Tender => item !== null);
+        let mapped = items.map(mapApiTenderToUiTender).filter((item): item is Tender => item !== null);
+        if (mapped.length === 0) {
+          const fallbackResponse = await fetch(`${API_BASE_URL}/api/tenders?page=1&pageSize=100`);
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json() as { items?: Array<Record<string, unknown>> };
+            const fallbackItems = Array.isArray(fallbackData.items) ? fallbackData.items : [];
+            mapped = fallbackItems.map(mapApiTenderToUiTender).filter((item): item is Tender => item !== null);
+          }
+        }
         if (isMounted) {
           setTenders(mapped);
           setDataSource('api');
@@ -229,7 +254,8 @@ export default function App() {
       if (advancedFilters.maxBudget && tender.budget > Number(advancedFilters.maxBudget)) return false;
 
       if (activeQuickFilter === '今日標案' || activeQuickFilter === savedDefaultButtonName) {
-        return tender.publishDate === getTodayInTaipei();
+        const today = getTodayInTaipei();
+        return tender.publishDate === today || tender.fetchedDate === today;
       }
 
       if (activeQuickFilter === '近期截止') {
@@ -478,8 +504,9 @@ function mapApiTenderToUiTender(item: Record<string, unknown>): Tender | null {
   const title = typeof item.title === 'string' && item.title.trim() ? item.title : '（無標題）';
   const orgName = typeof item.agency === 'string' && item.agency.trim() ? item.agency : '（未提供機關）';
   const budget = typeof item.amount_value === 'number' ? item.amount_value : 0;
-  const publishDate = typeof item.start_date === 'string' && item.start_date ? item.start_date : '1970-01-01';
+  const publishDate = normalizeDateFromApi(item.start_date) ?? '1970-01-01';
   const endDate = typeof item.end_date === 'string' && item.end_date ? item.end_date : publishDate;
+  const fetchedDate = normalizeDateFromApi(item.fetched_date);
   const type = typeof item.bidding_method === 'string' && item.bidding_method.trim() ? item.bidding_method : '未分類';
   const status = normalizeStatus(item.award_status);
 
@@ -495,6 +522,7 @@ function mapApiTenderToUiTender(item: Record<string, unknown>): Tender | null {
     category: '未分類',
     location: '全台',
     description: undefined,
+    fetchedDate: fetchedDate ?? undefined,
   };
 }
 
