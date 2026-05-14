@@ -21,10 +21,8 @@ export default function CustomConditionOverlay({ isOpen, onClose, currentFilters
   const isEditing = Boolean(editingCondition);
 
   const keywordTerms = useMemo(() => {
-    const terms = currentFilters.keyword
-      .split('\n')
-      .map((term) => term.trim())
-      .filter((term) => term.length > 0);
+    if (currentFilters.keyword === '') return [''];
+    const terms = currentFilters.keyword.split('\n');
     return terms.length > 0 ? terms : [''];
   }, [currentFilters.keyword]);
 
