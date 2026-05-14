@@ -4,7 +4,7 @@
  */
 
 import { Tender } from '../types/tender';
-import { Building2, Calendar, MapPin, DollarSign, ChevronRight, Bookmark } from 'lucide-react';
+import { Building2, Calendar, DollarSign, ChevronRight, Bookmark } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface TenderCardProps {
@@ -89,10 +89,6 @@ export default function TenderCard({ tender, onClick, onTrack, isTracking }: Ten
           <div className="flex items-center gap-1">
             <Calendar size={12} />
             <span>截止: {tender.endDate}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <MapPin size={12} />
-            <span>{tender.location}</span>
           </div>
         </div>
         <div className="flex items-center text-[#003366] text-[11px] font-bold" onClick={onClick}>

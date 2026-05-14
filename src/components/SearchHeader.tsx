@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Search, SlidersHorizontal, X, MapPin } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 
 interface SearchFiltersProps {
   searchQuery: string;
@@ -12,9 +12,10 @@ interface SearchFiltersProps {
   activeFilterCount: number;
   activeQuickFilter: string;
   onQuickFilterChange: (tag: string) => void;
+  customDefaultFilterName?: string | null;
 }
 
-const QUICK_FILTER_TAGS = ['全部標案', '政府工程', '資訊委託', '近期截止', '自訂條件'];
+const QUICK_FILTER_TAGS = ['今日標案', '近期截止'];
 
 export default function SearchHeader({
   searchQuery,
@@ -23,16 +24,16 @@ export default function SearchHeader({
   activeFilterCount,
   activeQuickFilter,
   onQuickFilterChange,
+  customDefaultFilterName,
 }: SearchFiltersProps) {
+  const quickFilterTags = customDefaultFilterName
+    ? [customDefaultFilterName, ...QUICK_FILTER_TAGS]
+    : QUICK_FILTER_TAGS;
   return (
     <div className="sticky top-0 z-40 bg-[#003366] text-white pt-6 pb-4 px-4 shadow-md">
       <div className="max-w-md mx-auto space-y-4">
         <div className="flex justify-between items-center mb-1">
           <span className="font-bold text-lg tracking-tight">標案通 TenderGo</span>
-          <div className="flex items-center gap-1 text-xs opacity-80">
-             <span>台北市</span>
-             <MapPin size={12} />
-          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -73,14 +74,10 @@ export default function SearchHeader({
         </div>
         
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide no-scrollbar">
-          {QUICK_FILTER_TAGS.map((tag) => (
+          {quickFilterTags.map((tag) => (
             <button 
               key={tag}
               onClick={() => {
-                if (tag === '自訂條件') {
-                  onFilterClick();
-                  return;
-                }
                 onQuickFilterChange(tag);
               }}
               className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-colors ${
@@ -92,6 +89,12 @@ export default function SearchHeader({
               {tag}
             </button>
           ))}
+          <button
+            onClick={onFilterClick}
+            className="whitespace-nowrap px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-colors bg-[#ffffff26] text-white border border-dashed border-white/50 hover:bg-[#ffffff33]"
+          >
+            + 自訂條件
+          </button>
         </div>
       </div>
     </div>

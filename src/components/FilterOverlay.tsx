@@ -3,16 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { X, Search, DollarSign, Building2, Hash, ArrowRight } from 'lucide-react';
+import { X, Search, DollarSign, Building2, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useState } from 'react';
 
 interface FilterOverlayProps {
   isOpen: boolean;
   onClose: () => void;
-  onApply: (filters: any) => void;
+  filters: { keyword: string; orgName: string; tenderId: string; minBudget: string; maxBudget: string; };
+  onChange: (filters: { keyword: string; orgName: string; tenderId: string; minBudget: string; maxBudget: string; }) => void;
+  onSetCondition: (name: string) => void;
+  onSetDefault: (name: string) => void;
+  onDeleteCondition: () => void;
 }
 
-export default function FilterOverlay({ isOpen, onClose, onApply }: FilterOverlayProps) {
+export default function FilterOverlay({ isOpen, onClose, filters, onChange, onSetCondition, onSetDefault, onDeleteCondition }: FilterOverlayProps) {
+  const update = (key: keyof typeof filters, value: string) => onChange({ ...filters, [key]: value });
+  const [savedName, setSavedName] = useState('');
   return (
     <AnimatePresence>
       {isOpen && (
@@ -57,6 +64,8 @@ export default function FilterOverlay({ isOpen, onClose, onApply }: FilterOverla
                   <input 
                     type="text" 
                     placeholder="例如：系統開發、委託服務..."
+                    value={filters.keyword}
+                    onChange={(e) => update('keyword', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none transition-all"
                   />
                 </div>
@@ -69,6 +78,8 @@ export default function FilterOverlay({ isOpen, onClose, onApply }: FilterOverla
                   <input 
                     type="text" 
                     placeholder="例如：資訊處、圖書館..."
+                    value={filters.orgName}
+                    onChange={(e) => update('orgName', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none transition-all"
                   />
                 </div>
@@ -81,6 +92,8 @@ export default function FilterOverlay({ isOpen, onClose, onApply }: FilterOverla
                   <input 
                     type="text" 
                     placeholder="例如：1130425-A1"
+                    value={filters.tenderId}
+                    onChange={(e) => update('tenderId', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-[#003366] outline-none transition-all"
                   />
                 </div>
@@ -96,6 +109,8 @@ export default function FilterOverlay({ isOpen, onClose, onApply }: FilterOverla
                       <input 
                         type="number" 
                         placeholder="最低"
+                        value={filters.minBudget}
+                        onChange={(e) => update('minBudget', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none"
                       />
                     </div>
@@ -104,6 +119,8 @@ export default function FilterOverlay({ isOpen, onClose, onApply }: FilterOverla
                       <input 
                         type="number" 
                         placeholder="最高"
+                        value={filters.maxBudget}
+                        onChange={(e) => update('maxBudget', e.target.value)}
                         className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none"
                       />
                     </div>
@@ -119,26 +136,51 @@ export default function FilterOverlay({ isOpen, onClose, onApply }: FilterOverla
                     ))}
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    按鈕名稱
+                  </label>
+                  <input
+                    type="text"
+                    value={savedName}
+                    onChange={(e) => setSavedName(e.target.value)}
+                    placeholder="請輸入條件按鈕名稱"
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none transition-all"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Footer Actions */}
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4">
               <button 
-                onClick={onClose}
+                onClick={() => {
+                  onDeleteCondition();
+                  onClose();
+                }}
                 className="flex-1 py-4 text-slate-500 font-bold text-sm bg-white border border-slate-200 rounded-2xl hover:bg-slate-100 transition-colors"
               >
-                重置
+                刪除條件
               </button>
               <button 
                 onClick={() => {
-                  onApply({});
+                  if (!savedName.trim()) return;
+                  onSetCondition(savedName.trim());
                   onClose();
                 }}
-                className="flex-[2] py-4 bg-[#003366] text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-900/20 hover:bg-[#2c5282] transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-4 bg-[#003366] text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-900/20 hover:bg-[#2c5282] transition-all flex items-center justify-center gap-2"
               >
-                應用篩選
-                <ArrowRight size={18} />
+                設定條件
+              </button>
+              <button 
+                onClick={() => {
+                  if (!savedName.trim()) return;
+                  onSetDefault(savedName.trim());
+                  onClose();
+                }}
+                className="flex-1 py-4 bg-[#1a4f84] text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-900/20 hover:bg-[#2c5282] transition-all flex items-center justify-center gap-2"
+              >
+                設為預設
               </button>
             </div>
           </motion.div>
