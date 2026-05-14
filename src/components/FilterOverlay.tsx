@@ -5,21 +5,18 @@
 
 import { X, Search, DollarSign, Building2, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState } from 'react';
 
 interface FilterOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   filters: { keyword: string; orgName: string; tenderId: string; minBudget: string; maxBudget: string; };
   onChange: (filters: { keyword: string; orgName: string; tenderId: string; minBudget: string; maxBudget: string; }) => void;
-  onSetCondition: (name: string) => void;
-  onSetDefault: (name: string) => void;
-  onDeleteCondition: () => void;
+  onReset: () => void;
+  onApply: () => void;
 }
 
-export default function FilterOverlay({ isOpen, onClose, filters, onChange, onSetCondition, onSetDefault, onDeleteCondition }: FilterOverlayProps) {
+export default function FilterOverlay({ isOpen, onClose, filters, onChange, onReset, onApply }: FilterOverlayProps) {
   const update = (key: keyof typeof filters, value: string) => onChange({ ...filters, [key]: value });
-  const [savedName, setSavedName] = useState('');
   return (
     <AnimatePresence>
       {isOpen && (
@@ -136,51 +133,25 @@ export default function FilterOverlay({ isOpen, onClose, filters, onChange, onSe
                     ))}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    按鈕名稱
-                  </label>
-                  <input
-                    type="text"
-                    value={savedName}
-                    onChange={(e) => setSavedName(e.target.value)}
-                    placeholder="請輸入條件按鈕名稱"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#003366] outline-none transition-all"
-                  />
-                </div>
               </div>
             </div>
 
             {/* Footer Actions */}
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4">
-              <button 
-                onClick={() => {
-                  onDeleteCondition();
-                  onClose();
-                }}
+              <button
+                onClick={onReset}
                 className="flex-1 py-4 text-slate-500 font-bold text-sm bg-white border border-slate-200 rounded-2xl hover:bg-slate-100 transition-colors"
               >
-                刪除條件
+                重置
               </button>
               <button 
                 onClick={() => {
-                  if (!savedName.trim()) return;
-                  onSetCondition(savedName.trim());
+                  onApply();
                   onClose();
                 }}
                 className="flex-1 py-4 bg-[#003366] text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-900/20 hover:bg-[#2c5282] transition-all flex items-center justify-center gap-2"
               >
-                設定條件
-              </button>
-              <button 
-                onClick={() => {
-                  if (!savedName.trim()) return;
-                  onSetDefault(savedName.trim());
-                  onClose();
-                }}
-                className="flex-1 py-4 bg-[#1a4f84] text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-900/20 hover:bg-[#2c5282] transition-all flex items-center justify-center gap-2"
-              >
-                設為預設
+                套用篩選
               </button>
             </div>
           </motion.div>

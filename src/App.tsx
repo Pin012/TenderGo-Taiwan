@@ -9,6 +9,7 @@ import BottomNav from './components/BottomNav';
 import TenderCard from './components/TenderCard';
 import TenderDetail from './components/TenderDetail';
 import FilterOverlay from './components/FilterOverlay';
+import CustomConditionOverlay from './components/CustomConditionOverlay';
 import { MOCK_TENDERS } from './data/mockTenders';
 import { Tender } from './types/tender';
 import { motion, AnimatePresence } from 'motion/react';
@@ -86,10 +87,13 @@ export default function App() {
   const [activeQuickFilter, setActiveQuickFilter] = useState('今日標案');
   const [savedDefaultButtonName, setSavedDefaultButtonName] = useState<string | null>(() => localStorage.getItem('saved_default_button_name'));
   const [advancedFilters, setAdvancedFilters] = useState({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
+  const [savedConditions, setSavedConditions] = useState<Array<{ name: string; filters: { keyword: string; orgName: string; tenderId: string; minBudget: string; maxBudget: string; }; isDefault: boolean }>>([]);
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [dataSource, setDataSource] = useState<'api' | 'mock'>('api');
+  const [isConditionOpen, setIsConditionOpen] = useState(false);
+  const [editingConditionName, setEditingConditionName] = useState<string | null>(null);
+    const [dataSource, setDataSource] = useState<'api' | 'mock'>('api');
   const [settingsPanel, setSettingsPanel] = useState<'login' | 'profile' | null>(null);
 
   const [notificationEnabled, setNotificationEnabled] = useState<boolean>(() => {
@@ -119,6 +123,21 @@ export default function App() {
       setActiveQuickFilter(savedDefaultButtonName);
     }
   }, [savedDefaultButtonName]);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('saved_conditions');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) setSavedConditions(parsed);
+    } catch {
+      console.warn('Failed to parse saved conditions.');
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('saved_conditions', JSON.stringify(savedConditions));
+  }, [savedConditions]);
 
 
   useEffect(() => {
@@ -253,7 +272,7 @@ export default function App() {
       if (advancedFilters.minBudget && tender.budget < Number(advancedFilters.minBudget)) return false;
       if (advancedFilters.maxBudget && tender.budget > Number(advancedFilters.maxBudget)) return false;
 
-      if (activeQuickFilter === '今日標案' || activeQuickFilter === savedDefaultButtonName) {
+      if (activeQuickFilter === '今日標案') {
         const today = getTodayInTaipei();
         return tender.publishDate === today || tender.fetchedDate === today;
       }
@@ -264,9 +283,19 @@ export default function App() {
         return diffDays >= 0 && diffDays <= 14 && tender.status === '招標中';
       }
 
+      const selected = savedConditions.find((item) => item.name === activeQuickFilter);
+      if (selected) {
+        const f = selected.filters;
+        if (f.keyword && !tender.title.toLowerCase().includes(f.keyword.toLowerCase())) return false;
+        if (f.orgName && !tender.orgName.toLowerCase().includes(f.orgName.toLowerCase())) return false;
+        if (f.tenderId && !tender.id.toLowerCase().includes(f.tenderId.toLowerCase())) return false;
+        if (f.minBudget && tender.budget < Number(f.minBudget)) return false;
+        if (f.maxBudget && tender.budget > Number(f.maxBudget)) return false;
+      }
+
       return true;
     });
-  }, [searchQuery, activeQuickFilter, tenders, advancedFilters, savedDefaultButtonName]);
+  }, [searchQuery, activeQuickFilter, tenders, advancedFilters, savedDefaultButtonName, savedConditions]);
 
   const trackedTenders = useMemo(() => {
     return tenders.filter(tender => trackingIds.has(tender.id));
@@ -279,6 +308,16 @@ export default function App() {
       else next.add(id);
       return next;
     });
+  };
+
+  const handleQuickFilterChange = (tag: string) => {
+    const isCustom = savedConditions.some((item) => item.name === tag);
+    if (isCustom && activeQuickFilter === tag) {
+      setEditingConditionName(tag);
+      setIsConditionOpen(true);
+      return;
+    }
+    setActiveQuickFilter(tag);
   };
 
   if (isInitialLoading) {
@@ -304,11 +343,17 @@ export default function App() {
           <SearchHeader
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            onFilterClick={() => setIsFilterOpen(true)}
+            onAdvancedFilterClick={() => setIsFilterOpen(true)}
+            onCustomConditionClick={() => {
+              setEditingConditionName(null);
+              setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
+              setIsConditionOpen(true);
+            }}
             activeFilterCount={0}
             activeQuickFilter={activeQuickFilter}
-            onQuickFilterChange={setActiveQuickFilter}
-            customDefaultFilterName={savedDefaultButtonName}
+            onQuickFilterChange={handleQuickFilterChange}
+            onCustomButtonLongPress={(tag) => { setEditingConditionName(tag); const t=savedConditions.find((x)=>x.name===tag); if(t) setAdvancedFilters(t.filters); setIsConditionOpen(true); }}
+            customButtons={[...savedConditions.filter((x) => x.isDefault).map((x) => x.name), ...savedConditions.filter((x) => !x.isDefault).map((x) => x.name)]}
           />
         )}
 
@@ -407,14 +452,73 @@ export default function App() {
           onClose={() => setIsFilterOpen(false)}
           filters={advancedFilters}
           onChange={setAdvancedFilters}
-          onDeleteCondition={() => setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' })}
-          onSetCondition={(name) => setActiveQuickFilter(name)}
-          onSetDefault={(name) => {
-            localStorage.setItem('saved_default_button_name', name);
-            setSavedDefaultButtonName(name);
+          onReset={() => setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' })}
+          onApply={() => undefined}
+        />
+
+
+        <CustomConditionOverlay
+          isOpen={isConditionOpen}
+          onClose={() => { setIsConditionOpen(false); setEditingConditionName(null); }}
+          currentFilters={advancedFilters}
+          editingCondition={editingConditionName ? savedConditions.find((x) => x.name === editingConditionName) ?? null : null}
+          onChangeFilters={setAdvancedFilters}
+          onCreate={(name, filters, isDefault) => {
+            const next = savedConditions.filter((item) => item.name !== editingConditionName && item.name !== name).map((item) => ({ ...item, isDefault: false }));
+            const newItem = { name, filters, isDefault };
+            if (isDefault) next.unshift(newItem);
+            else next.push(newItem);
+            setSavedConditions(next);
+            if (isDefault) {
+              setSavedDefaultButtonName(name);
+              localStorage.setItem('saved_default_button_name', name);
+            }
             setActiveQuickFilter(name);
+            setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
+            setEditingConditionName(null);
+            setIsConditionOpen(false);
+          }}
+          onConfirmEdit={(name, filters) => {
+            if (!editingConditionName) return;
+            const next = savedConditions.map((item) => item.name === editingConditionName ? { ...item, name, filters } : item);
+            setSavedConditions(next);
+            if (savedDefaultButtonName === editingConditionName) {
+              setSavedDefaultButtonName(name);
+              localStorage.setItem('saved_default_button_name', name);
+            }
+            if (activeQuickFilter === editingConditionName) setActiveQuickFilter(name);
+            setEditingConditionName(null);
+            setIsConditionOpen(false);
+          }}
+          onDelete={() => {
+            if (!editingConditionName) return;
+            const next = savedConditions.filter((item) => item.name !== editingConditionName);
+            setSavedConditions(next);
+            if (activeQuickFilter === editingConditionName) setActiveQuickFilter('今日標案');
+            setIsConditionOpen(false);
+          }}
+          onSetDefault={() => {
+            if (!editingConditionName) return;
+            const next = savedConditions.map((item) => ({ ...item, isDefault: item.name === editingConditionName }));
+            const selected = next.find((item) => item.name === editingConditionName);
+            if (!selected) return;
+            setSavedConditions([selected, ...next.filter((item) => item.name !== editingConditionName)]);
+            setSavedDefaultButtonName(editingConditionName);
+            localStorage.setItem('saved_default_button_name', editingConditionName);
+          }}
+          onCancelDefault={() => {
+            if (!editingConditionName) return;
+            const target = savedConditions.find((item) => item.name === editingConditionName);
+            if (!target) return;
+            const rest = savedConditions.filter((item) => item.name !== editingConditionName).map((item) => ({ ...item, isDefault: false }));
+            setSavedConditions([{ ...target, isDefault: false }, ...rest]);
+            setSavedDefaultButtonName(null);
+            localStorage.removeItem('saved_default_button_name');
+            setIsConditionOpen(false);
           }}
         />
+
+
 
         <AnimatePresence>
           {showNotificationList && (
