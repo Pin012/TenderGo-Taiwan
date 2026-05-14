@@ -17,4 +17,5 @@ export interface Tender {
   category: string;        // 標案類別（如：工程類、勞務類）
   location: string;        // 履約地點
   description?: string;    // 詳細說明（選填）
+  fetchedDate?: string;    // 系統抓取日期（YYYY-MM-DD）
 }

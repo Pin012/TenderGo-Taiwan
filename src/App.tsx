@@ -12,7 +12,7 @@ import FilterOverlay from './components/FilterOverlay';
 import { MOCK_TENDERS } from './data/mockTenders';
 import { Tender } from './types/tender';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutGrid, ClipboardList, Bell, Loader2, BellDot, X, Newspaper, GraduationCap, Bot, ArrowRight, UserRound, LogIn, MessageCircleQuestion, LifeBuoy, Share2 } from 'lucide-react';
+import { LayoutGrid, ClipboardList, Bell, Loader2, X, Newspaper, GraduationCap, Bot, ArrowRight, UserRound, LogIn, MessageCircleQuestion, LifeBuoy, Share2 } from 'lucide-react';
 
 
 
@@ -39,6 +39,23 @@ function getTodayInTaipei(): string {
   return `${y}-${m}-${d}`;
 }
 
+function normalizeDateFromApi(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim();
+  if (!value) return null;
+  const direct = value.replace(/\//g, '-');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(direct)) return direct;
+  const roc = value.match(/^(\d{2,3})[/-](\d{1,2})[/-](\d{1,2})$/);
+  if (roc) {
+    const y = String(Number(roc[1]) + 1911);
+    const m = roc[2].padStart(2, '0');
+    const d = roc[3].padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).format(parsed);
+}
 
 function detectInstallPromptPlatform(): InstallPromptPlatform | null {
   if (typeof window === 'undefined') return null;
@@ -66,7 +83,9 @@ export default function App() {
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [activeTab, setActiveTab] = useState('search');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeQuickFilter, setActiveQuickFilter] = useState('全部標案');
+  const [activeQuickFilter, setActiveQuickFilter] = useState('今日標案');
+  const [savedDefaultButtonName, setSavedDefaultButtonName] = useState<string | null>(() => localStorage.getItem('saved_default_button_name'));
+  const [advancedFilters, setAdvancedFilters] = useState({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
   const [selectedTender, setSelectedTender] = useState<Tender | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -96,12 +115,10 @@ export default function App() {
   }, [notifications]);
 
   useEffect(() => {
-    if (!notificationEnabled) return;
-    const timer = setTimeout(() => {
-      setNotifications((prev) => ['發現 3 個符合您專業領域的新標案！', ...prev]);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [notificationEnabled]);
+    if (savedDefaultButtonName) {
+      setActiveQuickFilter(savedDefaultButtonName);
+    }
+  }, [savedDefaultButtonName]);
 
 
   useEffect(() => {
@@ -186,7 +203,15 @@ export default function App() {
         if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         const data = await response.json() as { items?: Array<Record<string, unknown>> };
         const items = Array.isArray(data.items) ? data.items : [];
-        const mapped = items.map(mapApiTenderToUiTender).filter((item): item is Tender => item !== null);
+        let mapped = items.map(mapApiTenderToUiTender).filter((item): item is Tender => item !== null);
+        if (mapped.length === 0) {
+          const fallbackResponse = await fetch(`${API_BASE_URL}/api/tenders?page=1&pageSize=100`);
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json() as { items?: Array<Record<string, unknown>> };
+            const fallbackItems = Array.isArray(fallbackData.items) ? fallbackData.items : [];
+            mapped = fallbackItems.map(mapApiTenderToUiTender).filter((item): item is Tender => item !== null);
+          }
+        }
         if (isMounted) {
           setTenders(mapped);
           setDataSource('api');
@@ -214,19 +239,23 @@ export default function App() {
   }, []);
 
   const filteredTenders = useMemo(() => {
-    const now = new Date('2024-04-24');
+    const now = new Date(getTodayInTaipei());
 
     return tenders.filter((tender) => {
-      const matchesKeyword = tender.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const search = searchQuery.toLowerCase();
+      const advancedKeyword = advancedFilters.keyword.toLowerCase();
+      const org = advancedFilters.orgName.toLowerCase();
+      const idKeyword = advancedFilters.tenderId.toLowerCase();
+      const matchesKeyword = tender.title.toLowerCase().includes(search) && tender.title.toLowerCase().includes(advancedKeyword);
       if (!matchesKeyword) return false;
+      if (org && !tender.orgName.toLowerCase().includes(org)) return false;
+      if (idKeyword && !tender.id.toLowerCase().includes(idKeyword)) return false;
+      if (advancedFilters.minBudget && tender.budget < Number(advancedFilters.minBudget)) return false;
+      if (advancedFilters.maxBudget && tender.budget > Number(advancedFilters.maxBudget)) return false;
 
-      if (activeQuickFilter === '政府工程') {
-        return tender.category === '工程類';
-      }
-
-      if (activeQuickFilter === '資訊委託') {
-        const haystack = `${tender.title} ${tender.description ?? ''} ${tender.orgName}`.toLowerCase();
-        return tender.category === '勞務類' && (haystack.includes('資訊') || haystack.includes('系統') || haystack.includes('數位'));
+      if (activeQuickFilter === '今日標案' || activeQuickFilter === savedDefaultButtonName) {
+        const today = getTodayInTaipei();
+        return tender.publishDate === today || tender.fetchedDate === today;
       }
 
       if (activeQuickFilter === '近期截止') {
@@ -237,7 +266,7 @@ export default function App() {
 
       return true;
     });
-  }, [searchQuery, activeQuickFilter, tenders]);
+  }, [searchQuery, activeQuickFilter, tenders, advancedFilters, savedDefaultButtonName]);
 
   const trackedTenders = useMemo(() => {
     return tenders.filter(tender => trackingIds.has(tender.id));
@@ -279,6 +308,7 @@ export default function App() {
             activeFilterCount={0}
             activeQuickFilter={activeQuickFilter}
             onQuickFilterChange={setActiveQuickFilter}
+            customDefaultFilterName={savedDefaultButtonName}
           />
         )}
 
@@ -372,20 +402,19 @@ export default function App() {
 
         <TenderDetail tender={selectedTender} onClose={() => setSelectedTender(null)} onTrack={() => handleTrack(selectedTender?.id || '')} isTracking={trackingIds.has(selectedTender?.id || '')} />
 
-        <FilterOverlay isOpen={isFilterOpen} onClose={() => setIsFilterOpen(false)} onApply={() => {}} />
-
-        <AnimatePresence>
-          {notificationEnabled && notifications.length > 0 && activeTab !== 'tracking' && (
-            <motion.div initial={{ y: -100, opacity: 0, x: '-50%' }} animate={{ y: 20, opacity: 1, x: '-50%' }} exit={{ y: -100, opacity: 0, x: '-50%' }} className="fixed top-0 left-1/2 z-[100] w-[90%] max-w-sm bg-slate-900 border border-white/10 text-white p-4 rounded-2xl shadow-xl flex items-center gap-4 cursor-pointer" onClick={() => setNotifications((prev) => prev.slice(1))}>
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center animate-pulse"><BellDot size={20} /></div>
-              <div className="flex-1">
-                <p className="text-sm font-bold leading-tight">{notifications[0]}</p>
-                <span className="text-[10px] text-white/50 uppercase font-bold mt-1 inline-block">剛才 • 商機提醒</span>
-              </div>
-              <button className="text-white/40 hover:text-white"><X size={18} /></button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <FilterOverlay
+          isOpen={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
+          filters={advancedFilters}
+          onChange={setAdvancedFilters}
+          onDeleteCondition={() => setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' })}
+          onSetCondition={(name) => setActiveQuickFilter(name)}
+          onSetDefault={(name) => {
+            localStorage.setItem('saved_default_button_name', name);
+            setSavedDefaultButtonName(name);
+            setActiveQuickFilter(name);
+          }}
+        />
 
         <AnimatePresence>
           {showNotificationList && (
@@ -475,8 +504,9 @@ function mapApiTenderToUiTender(item: Record<string, unknown>): Tender | null {
   const title = typeof item.title === 'string' && item.title.trim() ? item.title : '（無標題）';
   const orgName = typeof item.agency === 'string' && item.agency.trim() ? item.agency : '（未提供機關）';
   const budget = typeof item.amount_value === 'number' ? item.amount_value : 0;
-  const publishDate = typeof item.start_date === 'string' && item.start_date ? item.start_date : '1970-01-01';
+  const publishDate = normalizeDateFromApi(item.start_date) ?? '1970-01-01';
   const endDate = typeof item.end_date === 'string' && item.end_date ? item.end_date : publishDate;
+  const fetchedDate = normalizeDateFromApi(item.fetched_date);
   const type = typeof item.bidding_method === 'string' && item.bidding_method.trim() ? item.bidding_method : '未分類';
   const status = normalizeStatus(item.award_status);
 
@@ -492,6 +522,7 @@ function mapApiTenderToUiTender(item: Record<string, unknown>): Tender | null {
     category: '未分類',
     location: '全台',
     description: undefined,
+    fetchedDate: fetchedDate ?? undefined,
   };
 }
 
