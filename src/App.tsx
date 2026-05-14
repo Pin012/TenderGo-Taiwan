@@ -93,6 +93,7 @@ export default function App() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isConditionOpen, setIsConditionOpen] = useState(false);
   const [editingConditionName, setEditingConditionName] = useState<string | null>(null);
+  const [longPressCondition, setLongPressCondition] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'api' | 'mock'>('api');
   const [settingsPanel, setSettingsPanel] = useState<'login' | 'profile' | null>(null);
 
@@ -310,6 +311,16 @@ export default function App() {
     });
   };
 
+  const handleQuickFilterChange = (tag: string) => {
+    const isCustom = savedConditions.some((item) => item.name === tag);
+    if (isCustom && activeQuickFilter === tag) {
+      setEditingConditionName(tag);
+      setIsConditionOpen(true);
+      return;
+    }
+    setActiveQuickFilter(tag);
+  };
+
   if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-[#003366] flex flex-col items-center justify-center text-white">
@@ -340,7 +351,8 @@ export default function App() {
             }}
             activeFilterCount={0}
             activeQuickFilter={activeQuickFilter}
-            onQuickFilterChange={setActiveQuickFilter}
+            onQuickFilterChange={handleQuickFilterChange}
+            onCustomButtonLongPress={(tag) => setLongPressCondition(tag)}
             customButtons={[...savedConditions.filter((x) => x.isDefault).map((x) => x.name), ...savedConditions.filter((x) => !x.isDefault).map((x) => x.name)]}
           />
         )}
@@ -455,7 +467,9 @@ export default function App() {
             const next = savedConditions.filter((item) => item.name !== name).map((item) => ({ ...item, isDefault: false }));
             next.push({ name, filters, isDefault: false });
             setSavedConditions(next);
+            setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
             setActiveQuickFilter(name);
+            setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
             setIsConditionOpen(false);
           }}
           onSaveDefault={(name, filters) => {
@@ -465,6 +479,7 @@ export default function App() {
             setSavedDefaultButtonName(name);
             localStorage.setItem('saved_default_button_name', name);
             setActiveQuickFilter(name);
+            setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
             setIsConditionOpen(false);
           }}
           onDelete={() => {
@@ -486,6 +501,29 @@ export default function App() {
           }}
         />
 
+
+
+        {longPressCondition && (
+          <div className="fixed inset-0 z-[115] bg-black/30" onClick={() => setLongPressCondition(null)}>
+            <div className="absolute left-1/2 -translate-x-1/2 top-36 bg-white rounded-2xl shadow-xl p-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+              <button className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold" onClick={() => {
+                const idx = savedConditions.findIndex((x) => x.name === longPressCondition);
+                if (idx > 0) {
+                  const next = [...savedConditions];
+                  [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                  setSavedConditions(next);
+                }
+              }}>移動</button>
+              <button className="px-4 py-2 rounded-xl bg-[#003366] text-white font-semibold" onClick={() => {
+                setEditingConditionName(longPressCondition);
+                const target = savedConditions.find((x) => x.name === longPressCondition);
+                if (target) setAdvancedFilters(target.filters);
+                setIsConditionOpen(true);
+                setLongPressCondition(null);
+              }}>編輯</button>
+            </div>
+          </div>
+        )}
         <AnimatePresence>
           {showNotificationList && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowNotificationList(false)}>

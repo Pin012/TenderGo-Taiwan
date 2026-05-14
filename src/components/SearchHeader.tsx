@@ -13,6 +13,7 @@ interface SearchFiltersProps {
   activeFilterCount: number;
   activeQuickFilter: string;
   onQuickFilterChange: (tag: string) => void;
+  onCustomButtonLongPress: (tag: string) => void;
   customButtons: string[];
 }
 
@@ -26,6 +27,7 @@ export default function SearchHeader({
   activeFilterCount,
   activeQuickFilter,
   onQuickFilterChange,
+  onCustomButtonLongPress,
   customButtons,
 }: SearchFiltersProps) {
   const quickFilterTags = [...QUICK_FILTER_TAGS, ...customButtons];
@@ -77,6 +79,13 @@ export default function SearchHeader({
           {quickFilterTags.map((tag) => (
             <button 
               key={tag}
+              onPointerDown={() => {
+                if (customButtons.includes(tag)) {
+                  const timer = window.setTimeout(() => onCustomButtonLongPress(tag), 500);
+                  const clear = () => window.clearTimeout(timer);
+                  window.addEventListener('pointerup', clear, { once: true });
+                }
+              }}
               onClick={() => {
                 onQuickFilterChange(tag);
               }}
