@@ -478,6 +478,18 @@ export default function App() {
             setEditingConditionName(null);
             setIsConditionOpen(false);
           }}
+          onConfirmEdit={(name, filters) => {
+            if (!editingConditionName) return;
+            const next = savedConditions.map((item) => item.name === editingConditionName ? { ...item, name, filters } : item);
+            setSavedConditions(next);
+            if (savedDefaultButtonName === editingConditionName) {
+              setSavedDefaultButtonName(name);
+              localStorage.setItem('saved_default_button_name', name);
+            }
+            if (activeQuickFilter === editingConditionName) setActiveQuickFilter(name);
+            setEditingConditionName(null);
+            setIsConditionOpen(false);
+          }}
           onDelete={() => {
             if (!editingConditionName) return;
             const next = savedConditions.filter((item) => item.name !== editingConditionName);

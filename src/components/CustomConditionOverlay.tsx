@@ -8,10 +8,11 @@ interface Props {
   isOpen: boolean; onClose: () => void; currentFilters: AdvancedFilters; onChangeFilters: (filters: AdvancedFilters) => void;
   editingCondition: SavedCondition | null;
   onCreate: (name: string, filters: AdvancedFilters, isDefault: boolean) => void;
+  onConfirmEdit: (name: string, filters: AdvancedFilters) => void;
   onDelete: () => void; onCancelDefault: () => void; onSetDefault: () => void; onRename: (name: string) => void;
 }
 
-export default function CustomConditionOverlay({ isOpen, onClose, currentFilters, onChangeFilters, editingCondition, onCreate, onDelete, onCancelDefault, onSetDefault, onRename }: Props) {
+export default function CustomConditionOverlay({ isOpen, onClose, currentFilters, onChangeFilters, editingCondition, onCreate, onConfirmEdit, onDelete, onCancelDefault, onSetDefault, onRename }: Props) {
   const [name, setName] = useState('');
   const [isDefaultForCreate, setIsDefaultForCreate] = useState(false);
   useEffect(() => { if (isOpen) setName(editingCondition?.name ?? ''); }, [isOpen, editingCondition]);
@@ -46,8 +47,9 @@ export default function CustomConditionOverlay({ isOpen, onClose, currentFilters
         {!isEditing ? <>
           <button onClick={() => name.trim() && onCreate(name.trim(), currentFilters, isDefaultForCreate)} disabled={!name.trim() || !hasFilters} className="w-full py-3 bg-[#003366] text-white rounded-xl font-bold disabled:opacity-50">建立篩選</button>
         </> : <>
-          <button onClick={onDelete} className="flex-1 py-3 bg-white border rounded-xl">刪除按鈕</button>
+          <button onClick={onDelete} className="flex-1 py-3 bg-white border rounded-xl">刪除標籤</button>
           {editingCondition?.isDefault ? <button onClick={onCancelDefault} className="flex-1 py-3 bg-white border rounded-xl">取消預設</button> : <button onClick={onSetDefault} className="flex-1 py-3 bg-[#003366] text-white rounded-xl">設為預設</button>}
+          <button onClick={() => name.trim() && onConfirmEdit(name.trim(), currentFilters)} className="w-full py-3 bg-[#003366] text-white rounded-xl font-bold">確認</button>
         </>}
       </div>
     </motion.div>
