@@ -345,7 +345,8 @@ export default function App() {
             setSearchQuery={setSearchQuery}
             onAdvancedFilterClick={() => setIsFilterOpen(true)}
             onCustomConditionClick={() => {
-              setEditingConditionName(!['今日標案', '近期截止'].includes(activeQuickFilter) ? activeQuickFilter : null);
+              setEditingConditionName(null);
+              setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
               setIsConditionOpen(true);
             }}
             activeFilterCount={0}
@@ -458,7 +459,7 @@ export default function App() {
 
         <CustomConditionOverlay
           isOpen={isConditionOpen}
-          onClose={() => setIsConditionOpen(false)}
+          onClose={() => { setIsConditionOpen(false); setEditingConditionName(null); }}
           currentFilters={advancedFilters}
           editingCondition={editingConditionName ? savedConditions.find((x) => x.name === editingConditionName) ?? null : null}
           onChangeFilters={setAdvancedFilters}

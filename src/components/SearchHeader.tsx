@@ -30,7 +30,7 @@ export default function SearchHeader({
   onCustomButtonLongPress,
   customButtons,
 }: SearchFiltersProps) {
-  const quickFilterTags = [...QUICK_FILTER_TAGS, ...customButtons];
+  const quickFilterTags = [...customButtons, ...QUICK_FILTER_TAGS];
   return (
     <div className="sticky top-0 z-40 bg-[#003366] text-white pt-6 pb-4 px-4 shadow-md">
       <div className="max-w-md mx-auto space-y-4">
