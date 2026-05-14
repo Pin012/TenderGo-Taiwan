@@ -39,6 +39,26 @@ function getTodayInTaipei(): string {
   return `${y}-${m}-${d}`;
 }
 
+function toTaipeiDateString(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const normalized = raw.replace(/\//g, '-');
+  if (/^\d{4}-\d{2}-\d{2}/.test(normalized)) return normalized.slice(0, 10);
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(parsed);
+  const y = parts.find((x) => x.type === 'year')?.value ?? '1970';
+  const m = parts.find((x) => x.type === 'month')?.value ?? '01';
+  const d = parts.find((x) => x.type === 'day')?.value ?? '01';
+  return `${y}-${m}-${d}`;
+}
+
 
 function detectInstallPromptPlatform(): InstallPromptPlatform | null {
   if (typeof window === 'undefined') return null;
@@ -229,7 +249,8 @@ export default function App() {
       if (advancedFilters.maxBudget && tender.budget > Number(advancedFilters.maxBudget)) return false;
 
       if (activeQuickFilter === '今日標案' || activeQuickFilter === savedDefaultButtonName) {
-        return tender.publishDate === getTodayInTaipei();
+        const publishDate = toTaipeiDateString(tender.publishDate);
+        return publishDate === getTodayInTaipei();
       }
 
       if (activeQuickFilter === '近期截止') {
