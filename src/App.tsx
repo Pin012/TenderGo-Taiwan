@@ -26,6 +26,20 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 console.log('API_BASE_URL =', API_BASE_URL);
 const ENABLE_MOCK_FALLBACK = import.meta.env.VITE_ENABLE_MOCK_FALLBACK === 'true';
 
+function getTodayInTaipei(): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Taipei',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+  const y = parts.find((x) => x.type === 'year')?.value ?? '1970';
+  const m = parts.find((x) => x.type === 'month')?.value ?? '01';
+  const d = parts.find((x) => x.type === 'day')?.value ?? '01';
+  return `${y}-${m}-${d}`;
+}
+
+
 function detectInstallPromptPlatform(): InstallPromptPlatform | null {
   if (typeof window === 'undefined') return null;
   const ua = window.navigator.userAgent.toLowerCase();
@@ -167,7 +181,8 @@ export default function App() {
 
     const fetchTenders = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/tenders?page=1&pageSize=100`);
+        const today = getTodayInTaipei();
+        const response = await fetch(`${API_BASE_URL}/api/tenders?date=${today}&page=1&pageSize=100`);
         if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
         const data = await response.json() as { items?: Array<Record<string, unknown>> };
         const items = Array.isArray(data.items) ? data.items : [];

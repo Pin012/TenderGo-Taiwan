@@ -239,3 +239,39 @@ npx wrangler d1 execute tendergo-db --remote --command "PRAGMA table_info(tender
 ```
 
 看到上面欄位名稱就代表 schema 已建立完成，這時候才可以正常使用 `run-crawl` / `crawl-status`。
+
+## J. 爬蟲現在怎麼跑？（實際程式行為）
+
+### 1) 觸發方式
+- **排程自動跑**：由 `wrangler.toml` 的 cron 觸發（目前是每天 4 次）。
+- **手動觸發**：呼叫 `/api/admin/run-crawl?token=...`。
+
+### 2) 抓取流程
+1. 使用 **Asia/Taipei（台北時區）** 計算「今日日期」（固定時區）。
+2. 只用今日日期組搜尋 URL（`tenderStartDate = tenderEndDate = 今日`，`pageSize=100`）。
+3. 用固定 header 抓 HTML。
+4. 解析表格欄位並轉成結構化資料。
+5. 寫入 D1（`INSERT OR IGNORE`，重複資料會忽略）。
+
+### 3) 一次抓幾筆
+- 每頁固定 `pageSize=100`。
+- 會從 `pageIndex=1` 開始逐頁抓，直到頁面無資料或筆數小於 100 才停止。
+
+### 4) 是否已抓到「所有當日公告」
+- 目前策略是「只抓當日公告」，不抓過去日期。
+- 若來源網站分頁規則不變，理論上可覆蓋所有當日分頁資料。
+- **需確認**：來源站是否有額外隱藏條件/反爬驗證導致漏頁。
+
+### 5) 防爬機制的實務處理
+- 本專案目前有基本請求 header（`user-agent`、`accept-language`），並在分頁查詢間加入隨機短延遲。
+- 建議採用**合法且低風險**做法：
+  - 降低抓取頻率、加上隨機延遲。
+  - 明確重試與退避（429/5xx）。
+  - 實作分頁與增量抓取，減少單次壓力。
+  - 遵守網站服務條款與 robots 規範。
+- 不建議也不提供繞過驗證/封鎖的手法。
+
+
+### 6) 去重規則
+- DB 以 `tender_id + title` 做唯一鍵。
+- 一天內多次排程重抓時，重複資料會被 `INSERT OR IGNORE` 忽略，只保留唯一值。

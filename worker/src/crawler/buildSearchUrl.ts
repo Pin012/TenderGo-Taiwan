@@ -1,10 +1,11 @@
 import { ymdToPcc } from '../utils/date';
 
-export function buildSearchUrl(baseUrl: string, startYmd: string, endYmd: string): string {
+export function buildSearchUrl(baseUrl: string, startYmd: string, endYmd: string, pageIndex = 1): string {
   const url = new URL(baseUrl);
   const params: Record<string, string> = {
     pageSize: '100',
-    firstSearch: 'false',
+    pageIndex: String(pageIndex),
+    firstSearch: 'true',
     searchType: 'basic',
     isBinding: 'N',
     isLogIn: 'N',
