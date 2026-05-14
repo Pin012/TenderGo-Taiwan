@@ -58,7 +58,7 @@ export default function CustomConditionOverlay({ isOpen, onClose, currentFilters
       </div>
       <div className="flex-1 overflow-y-auto px-6 pt-4 pb-10 space-y-4">
         <div>
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Search size={12} /> 標案名稱關鍵字（任一符合即可）</label>
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Search size={12} /> 標案名稱關鍵字 </label>
           <div className="mt-1 space-y-2">
             {keywordTerms.map((term, idx) => (
               <div key={idx} className="flex gap-2">
