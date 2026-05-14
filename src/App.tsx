@@ -93,8 +93,7 @@ export default function App() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isConditionOpen, setIsConditionOpen] = useState(false);
   const [editingConditionName, setEditingConditionName] = useState<string | null>(null);
-  const [longPressCondition, setLongPressCondition] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<'api' | 'mock'>('api');
+    const [dataSource, setDataSource] = useState<'api' | 'mock'>('api');
   const [settingsPanel, setSettingsPanel] = useState<'login' | 'profile' | null>(null);
 
   const [notificationEnabled, setNotificationEnabled] = useState<boolean>(() => {
@@ -352,7 +351,7 @@ export default function App() {
             activeFilterCount={0}
             activeQuickFilter={activeQuickFilter}
             onQuickFilterChange={handleQuickFilterChange}
-            onCustomButtonLongPress={(tag) => setLongPressCondition(tag)}
+            onCustomButtonLongPress={(tag) => { setEditingConditionName(tag); const t=savedConditions.find((x)=>x.name===tag); if(t) setAdvancedFilters(t.filters); setIsConditionOpen(true); }}
             customButtons={[...savedConditions.filter((x) => x.isDefault).map((x) => x.name), ...savedConditions.filter((x) => !x.isDefault).map((x) => x.name)]}
           />
         )}
@@ -463,23 +462,19 @@ export default function App() {
           currentFilters={advancedFilters}
           editingCondition={editingConditionName ? savedConditions.find((x) => x.name === editingConditionName) ?? null : null}
           onChangeFilters={setAdvancedFilters}
-          onSaveNormal={(name, filters) => {
-            const next = savedConditions.filter((item) => item.name !== name).map((item) => ({ ...item, isDefault: false }));
-            next.push({ name, filters, isDefault: false });
+          onCreate={(name, filters, isDefault) => {
+            const next = savedConditions.filter((item) => item.name !== editingConditionName && item.name !== name).map((item) => ({ ...item, isDefault: false }));
+            const newItem = { name, filters, isDefault };
+            if (isDefault) next.unshift(newItem);
+            else next.push(newItem);
             setSavedConditions(next);
-            setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
+            if (isDefault) {
+              setSavedDefaultButtonName(name);
+              localStorage.setItem('saved_default_button_name', name);
+            }
             setActiveQuickFilter(name);
             setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
-            setIsConditionOpen(false);
-          }}
-          onSaveDefault={(name, filters) => {
-            const next = savedConditions.filter((item) => item.name !== name).map((item) => ({ ...item, isDefault: false }));
-            next.unshift({ name, filters, isDefault: true });
-            setSavedConditions(next);
-            setSavedDefaultButtonName(name);
-            localStorage.setItem('saved_default_button_name', name);
-            setActiveQuickFilter(name);
-            setAdvancedFilters({ keyword: '', orgName: '', tenderId: '', minBudget: '', maxBudget: '' });
+            setEditingConditionName(null);
             setIsConditionOpen(false);
           }}
           onDelete={() => {
@@ -488,6 +483,15 @@ export default function App() {
             setSavedConditions(next);
             if (activeQuickFilter === editingConditionName) setActiveQuickFilter('今日標案');
             setIsConditionOpen(false);
+          }}
+          onSetDefault={() => {
+            if (!editingConditionName) return;
+            const next = savedConditions.map((item) => ({ ...item, isDefault: item.name === editingConditionName }));
+            const selected = next.find((item) => item.name === editingConditionName);
+            if (!selected) return;
+            setSavedConditions([selected, ...next.filter((item) => item.name !== editingConditionName)]);
+            setSavedDefaultButtonName(editingConditionName);
+            localStorage.setItem('saved_default_button_name', editingConditionName);
           }}
           onCancelDefault={() => {
             if (!editingConditionName) return;
@@ -503,27 +507,6 @@ export default function App() {
 
 
 
-        {longPressCondition && (
-          <div className="fixed inset-0 z-[115] bg-black/30" onClick={() => setLongPressCondition(null)}>
-            <div className="absolute left-1/2 -translate-x-1/2 top-36 bg-white rounded-2xl shadow-xl p-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
-              <button className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-semibold" onClick={() => {
-                const idx = savedConditions.findIndex((x) => x.name === longPressCondition);
-                if (idx > 0) {
-                  const next = [...savedConditions];
-                  [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                  setSavedConditions(next);
-                }
-              }}>移動</button>
-              <button className="px-4 py-2 rounded-xl bg-[#003366] text-white font-semibold" onClick={() => {
-                setEditingConditionName(longPressCondition);
-                const target = savedConditions.find((x) => x.name === longPressCondition);
-                if (target) setAdvancedFilters(target.filters);
-                setIsConditionOpen(true);
-                setLongPressCondition(null);
-              }}>編輯</button>
-            </div>
-          </div>
-        )}
         <AnimatePresence>
           {showNotificationList && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowNotificationList(false)}>

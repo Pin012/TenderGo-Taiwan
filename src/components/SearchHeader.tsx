@@ -17,7 +17,7 @@ interface SearchFiltersProps {
   customButtons: string[];
 }
 
-const QUICK_FILTER_TAGS = ['今日標案', '近期截止'];
+const QUICK_FILTER_TAGS = ['今日標案'];
 
 export default function SearchHeader({
   searchQuery,
