@@ -450,16 +450,17 @@ export default function App() {
           onClose={() => setIsConditionOpen(false)}
           currentFilters={advancedFilters}
           editingCondition={editingConditionName ? savedConditions.find((x) => x.name === editingConditionName) ?? null : null}
-          onSaveNormal={(name) => {
+          onChangeFilters={setAdvancedFilters}
+          onSaveNormal={(name, filters) => {
             const next = savedConditions.filter((item) => item.name !== name).map((item) => ({ ...item, isDefault: false }));
-            next.push({ name, filters: advancedFilters, isDefault: false });
+            next.push({ name, filters, isDefault: false });
             setSavedConditions(next);
             setActiveQuickFilter(name);
             setIsConditionOpen(false);
           }}
-          onSaveDefault={(name) => {
+          onSaveDefault={(name, filters) => {
             const next = savedConditions.filter((item) => item.name !== name).map((item) => ({ ...item, isDefault: false }));
-            next.unshift({ name, filters: advancedFilters, isDefault: true });
+            next.unshift({ name, filters, isDefault: true });
             setSavedConditions(next);
             setSavedDefaultButtonName(name);
             localStorage.setItem('saved_default_button_name', name);
