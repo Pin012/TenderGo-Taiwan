@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Search, Building2, Hash, DollarSign } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface AdvancedFilters { keyword: string; orgName: string; tenderId: string; minBudget: string; maxBudget: string; }
 interface SavedCondition { name: string; filters: AdvancedFilters; isDefault: boolean; }
@@ -20,6 +20,25 @@ export default function CustomConditionOverlay({ isOpen, onClose, currentFilters
   const update = (k: keyof AdvancedFilters, v: string) => onChangeFilters({ ...currentFilters, [k]: v });
   const isEditing = Boolean(editingCondition);
 
+  const keywordTerms = useMemo(() => {
+    if (currentFilters.keyword === '') return [''];
+    const terms = currentFilters.keyword.split('\n');
+    return terms.length > 0 ? terms : [''];
+  }, [currentFilters.keyword]);
+
+  const updateKeywordTerm = (idx: number, value: string) => {
+    const next = [...keywordTerms];
+    next[idx] = value;
+    update('keyword', next.join('\n'));
+  };
+
+  const addKeywordTerm = () => update('keyword', [...keywordTerms, ''].join('\n'));
+
+  const removeKeywordTerm = (idx: number) => {
+    const next = keywordTerms.filter((_, i) => i !== idx);
+    update('keyword', next.join('\n'));
+  };
+
   return <AnimatePresence>{isOpen && <>
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70]" />
     <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed inset-x-0 bottom-0 top-[10%] bg-white rounded-t-[32px] z-[80] flex flex-col overflow-hidden shadow-2xl shadow-blue-900/40">
@@ -38,7 +57,20 @@ export default function CustomConditionOverlay({ isOpen, onClose, currentFilters
       </div>
       </div>
       <div className="flex-1 overflow-y-auto px-6 pt-4 pb-10 space-y-4">
-        <div><label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Search size={12} /> 標案名稱關鍵字</label><input value={currentFilters.keyword} onChange={(e)=>update('keyword',e.target.value)} className="mt-1 w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm"/></div>
+        <div>
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Search size={12} /> 標案名稱關鍵字（任一符合即可）</label>
+          <div className="mt-1 space-y-2">
+            {keywordTerms.map((term, idx) => (
+              <div key={idx} className="flex gap-2">
+                <input value={term} onChange={(e) => updateKeywordTerm(idx, e.target.value)} placeholder={`關鍵字 ${idx + 1}`} className="flex-1 bg-slate-50 border rounded-xl px-4 py-3 text-sm" />
+                {keywordTerms.length > 1 && (
+                  <button type="button" onClick={() => removeKeywordTerm(idx)} className="px-3 py-2 bg-white border rounded-xl text-slate-500">移除</button>
+                )}
+              </div>
+            ))}
+            <button type="button" onClick={addKeywordTerm} className="w-full py-2 border border-dashed rounded-xl text-sm text-[#003366] font-semibold">+ 新增關鍵字</button>
+          </div>
+        </div>
         <div><label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Building2 size={12} /> 招標機關</label><input value={currentFilters.orgName} onChange={(e)=>update('orgName',e.target.value)} className="mt-1 w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm"/></div>
         <div><label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Hash size={12} /> 標案案號</label><input value={currentFilters.tenderId} onChange={(e)=>update('tenderId',e.target.value)} className="mt-1 w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm"/></div>
         <div><label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><DollarSign size={12} /> 預算金額區間</label><div className="grid grid-cols-2 gap-4 mt-1"><input type="number" value={currentFilters.minBudget} onChange={(e)=>update('minBudget',e.target.value)} placeholder="最低" className="w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm"/><input type="number" value={currentFilters.maxBudget} onChange={(e)=>update('maxBudget',e.target.value)} placeholder="最高" className="w-full bg-slate-50 border rounded-xl px-4 py-3 text-sm"/></div></div>

@@ -262,10 +262,15 @@ export default function App() {
 
     return tenders.filter((tender) => {
       const search = searchQuery.toLowerCase();
-      const advancedKeyword = advancedFilters.keyword.toLowerCase();
+      const advancedKeywordTerms = advancedFilters.keyword
+        .split('\n')
+        .map((term) => term.trim().toLowerCase())
+        .filter(Boolean);
       const org = advancedFilters.orgName.toLowerCase();
       const idKeyword = advancedFilters.tenderId.toLowerCase();
-      const matchesKeyword = tender.title.toLowerCase().includes(search) && tender.title.toLowerCase().includes(advancedKeyword);
+      const title = tender.title.toLowerCase();
+      const matchesAdvancedKeyword = advancedKeywordTerms.length === 0 || advancedKeywordTerms.some((term) => title.includes(term));
+      const matchesKeyword = title.includes(search) && matchesAdvancedKeyword;
       if (!matchesKeyword) return false;
       if (org && !tender.orgName.toLowerCase().includes(org)) return false;
       if (idKeyword && !tender.id.toLowerCase().includes(idKeyword)) return false;
@@ -286,7 +291,11 @@ export default function App() {
       const selected = savedConditions.find((item) => item.name === activeQuickFilter);
       if (selected) {
         const f = selected.filters;
-        if (f.keyword && !tender.title.toLowerCase().includes(f.keyword.toLowerCase())) return false;
+        const conditionKeywordTerms = f.keyword
+          .split('\n')
+          .map((term) => term.trim().toLowerCase())
+          .filter(Boolean);
+        if (conditionKeywordTerms.length > 0 && !conditionKeywordTerms.some((term) => title.includes(term))) return false;
         if (f.orgName && !tender.orgName.toLowerCase().includes(f.orgName.toLowerCase())) return false;
         if (f.tenderId && !tender.id.toLowerCase().includes(f.tenderId.toLowerCase())) return false;
         if (f.minBudget && tender.budget < Number(f.minBudget)) return false;
