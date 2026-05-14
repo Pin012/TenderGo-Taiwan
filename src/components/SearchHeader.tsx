@@ -8,11 +8,12 @@ import { Search, SlidersHorizontal, X } from 'lucide-react';
 interface SearchFiltersProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  onFilterClick: () => void;
+  onAdvancedFilterClick: () => void;
+  onCustomConditionClick: () => void;
   activeFilterCount: number;
   activeQuickFilter: string;
   onQuickFilterChange: (tag: string) => void;
-  customDefaultFilterName?: string | null;
+  customButtons: string[];
 }
 
 const QUICK_FILTER_TAGS = ['今日標案', '近期截止'];
@@ -20,15 +21,14 @@ const QUICK_FILTER_TAGS = ['今日標案', '近期截止'];
 export default function SearchHeader({
   searchQuery,
   setSearchQuery,
-  onFilterClick,
+  onAdvancedFilterClick,
+  onCustomConditionClick,
   activeFilterCount,
   activeQuickFilter,
   onQuickFilterChange,
-  customDefaultFilterName,
+  customButtons,
 }: SearchFiltersProps) {
-  const quickFilterTags = customDefaultFilterName
-    ? [customDefaultFilterName, ...QUICK_FILTER_TAGS]
-    : QUICK_FILTER_TAGS;
+  const quickFilterTags = [...QUICK_FILTER_TAGS, ...customButtons];
   return (
     <div className="sticky top-0 z-40 bg-[#003366] text-white pt-6 pb-4 px-4 shadow-md">
       <div className="max-w-md mx-auto space-y-4">
@@ -57,7 +57,7 @@ export default function SearchHeader({
           </div>
           
           <button 
-            onClick={onFilterClick}
+            onClick={onAdvancedFilterClick}
             className={`relative p-2.5 rounded-lg border transition-all ${
               activeFilterCount > 0 
                 ? 'bg-white/30 border-white/40 text-white ring-4 ring-white/10' 
@@ -90,7 +90,7 @@ export default function SearchHeader({
             </button>
           ))}
           <button
-            onClick={onFilterClick}
+            onClick={onCustomConditionClick}
             className="whitespace-nowrap px-3.5 py-1.5 rounded-full text-[11px] font-bold transition-colors bg-[#ffffff26] text-white border border-dashed border-white/50 hover:bg-[#ffffff33]"
           >
             + 自訂條件
