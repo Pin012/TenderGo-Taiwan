@@ -15,6 +15,28 @@ export function toYmd(date: Date, timeZone = 'UTC'): string {
   return formatYmdInTz(date, timeZone);
 }
 
+export function toSqlTimestamp(date: Date, timeZone = 'UTC'): string {
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(date);
+
+  const y = parts.find((x) => x.type === 'year')?.value ?? '1970';
+  const m = parts.find((x) => x.type === 'month')?.value ?? '01';
+  const d = parts.find((x) => x.type === 'day')?.value ?? '01';
+  const hh = parts.find((x) => x.type === 'hour')?.value ?? '00';
+  const mm = parts.find((x) => x.type === 'minute')?.value ?? '00';
+  const ss = parts.find((x) => x.type === 'second')?.value ?? '00';
+
+  return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+}
+
 export function ymdToPcc(ymd: string): string {
   return ymd.replace(/-/g, '/');
 }
