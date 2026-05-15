@@ -223,7 +223,7 @@ curl "https://<你的-worker-name>.workers.dev/api/admin/crawl-status?token=<ADM
 - `source_hash`
 - `fetched_date`
 
-> `id` 與 `created_at` 是 DB 自動產生。
+> `id` 是 DB 自動產生；`created_at` 由 worker 寫入 **Asia/Taipei** 時間。
 
 ### 這個需要先設定嗎？
 **需要。** 你一定要先套用 migration，DB 才會有這些制式欄位。

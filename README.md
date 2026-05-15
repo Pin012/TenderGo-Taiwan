@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS tenders (
   source_url TEXT NOT NULL,
   source_hash TEXT NOT NULL,
   fetched_date TEXT NOT NULL,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP -- 目前程式實際會以 Asia/Taipei 明確寫入
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tenders_unique_daily
@@ -435,14 +435,14 @@ worker/
   - source_url TEXT NOT NULL
   - source_hash TEXT NOT NULL
   - fetched_date TEXT NOT NULL   -- yyyy-mm-dd
-  - created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  - created_at TEXT DEFAULT CURRENT_TIMESTAMP（程式寫入時採 Asia/Taipei）
 - unique index: (tender_id, fetched_date)
 - index: agency
 - index: end_date
 
 # API 規格
 - GET /api/health
-  - 回傳 { ok: true, service: "tendergo-worker", now: "ISO_DATE" }
+  - 回傳 { ok: true, service: "tendergo-worker", nowTaipei: "YYYY-MM-DD HH:mm:ss", todayTaipei: "YYYY-MM-DD" }
 - GET /api/tenders?date=YYYY-MM-DD&page=1&pageSize=20&agency=&keyword=
   - 支援分頁
   - 支援 agency/keyword 條件
